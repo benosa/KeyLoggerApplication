@@ -45,9 +45,6 @@
     <ClCompile Include="injector\fileutils.cpp">
       <Filter>Injector\Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="CommandProcessor.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SpyService.h">

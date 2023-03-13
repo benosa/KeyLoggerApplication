@@ -3,14 +3,10 @@
 #include <sstream>
 #include <locale>
 #include <codecvt>
-#include <Poco/Util/Application.h>
 #include <Poco/UnicodeConverter.h>
-#include "Poco/Util/LoggingSubsystem.h"
 #include "defines.h"
 #include "IGuardProcessor.h"
 #include "AppContainer.h"
-
-using Poco::Util::Application;
 
 class WindowInfo {
 private:

@@ -75,4 +75,6 @@ private:
     std::string appName;
 
     void installKeyboardHookProcess();
+
+    void removelKeyboardHookProcess();
 };

@@ -130,7 +130,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CommandProcessor.cpp" />
     <ClCompile Include="injector\fileutils.cpp" />
     <ClCompile Include="injector\InjectDll.cpp" />
     <ClCompile Include="injector\process.cpp" />

@@ -6,6 +6,7 @@
 #include "IGuardProcessor.h"
 #include "Poco/SharedPtr.h"
 #include "AppContainer.h"
+#include <Poco/Util/PropertyFileConfiguration.h>
 
 typedef std::map<const HWND, Poco::SharedPtr<WindowInfo>> Mymap;
 
@@ -13,13 +14,12 @@ class WordProcessor :
     public IWordProcessor
 {
 private:
-    //Poco::Util::Application* app;
     Mymap mapWindows;
     IGuardProcessor* processor;
     bool editfeature;
 public:
     WordProcessor(IGuardProcessor* processor);
-    void process(/*Poco::Util::Application* _app, */HWND window, std::wstring str);
+    void process(HWND window, std::wstring str);
     int countWindow();
 };
 

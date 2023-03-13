@@ -53,11 +53,14 @@ private:
         pChannel->setProperty("archive", "timestamp");
         Poco::AutoPtr<Poco::PatternFormatter> pPatern(new Poco::PatternFormatter);
         pPatern->setProperty("pattern", patternLog);
-        Poco::AutoPtr<Poco::FormattingChannel> pAppLoggerFormatterChannel(new Poco::FormattingChannel(pPatern, pChannel));
-
+        Poco::AutoPtr<Poco::FormattingChannel> pAppLoggerFormatterChannel(new Poco::FormattingChannel(pPatern, pChannel));       
         _appLogger = &Logger::get("AppLogger");
         _appLogger->setChannel(pAppLoggerFormatterChannel);
         _appLogger->setLevel(logLevel);
+
+        /*_appLogger = &Logger::get("CommandProcessor");
+        _appLogger->setChannel(pAppLoggerFormatterChannel);
+        _appLogger->setLevel(logLevel);*/
         /*
         * Создание логера кейлогера
         */

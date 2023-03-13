@@ -16,8 +16,12 @@ CommandProcessor::CommandProcessor(std::wstring pipePath, Poco::Logger* _logger,
     );
 
     if (hNamedPipe != INVALID_HANDLE_VALUE) {
-        AdapterWorker<CommandProcessor, DWORD WINAPI, LPVOID> adapter(this, &CommandProcessor::NamedPipeServerThread);
-        CreateThread(nullptr, NULL, AdapterWorker<CommandProcessor, DWORD WINAPI, LPVOID>::Function, hNamedPipe, NULL, nullptr);
+        //AdapterWorker<CommandProcessor, DWORD WINAPI, LPVOID> adapter(this, &CommandProcessor::NamedPipeServerThread);
+        HANDLE h = NULL;//CreateThread(nullptr, NULL, AdapterWorker<CommandProcessor, DWORD WINAPI, LPVOID>::Function, hNamedPipe, NULL, nullptr);
+        if (!h) {
+            logger->get("CommandProcessor").error("Failed to create thread for pipe with error " + GetLastError());
+        }
+        logger->get("CommandProcessor").error("Pipe thread created!");
     }
     else {
         logger->get("CommandProcessor").error("Failed to create named pipe with error " + GetLastError());
@@ -25,7 +29,7 @@ CommandProcessor::CommandProcessor(std::wstring pipePath, Poco::Logger* _logger,
 }
 
 void CommandProcessor::setStopPipeFlag() {
-    stopFlag = true;
+    stopFlag = false;
 }
 
 DWORD WINAPI CommandProcessor::NamedPipeServerThread(LPVOID lpParam) {

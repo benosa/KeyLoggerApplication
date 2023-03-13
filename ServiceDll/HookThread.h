@@ -1,5 +1,4 @@
 #pragma once
-#pragma comment (lib, "wtsapi32.lib")
 #include <Poco/Logger.h>
 #include <Poco/Thread.h>
 #include <Poco/Util/Application.h>
@@ -27,15 +26,12 @@ struct EnumWindowsData
 class HookThread : public Poco::Runnable
 {
 public:
-	HookThread(/*Poco::Util::Application* _app,*/ IKeyResover* resolver, IWordProcessor* processor);
+	HookThread(IKeyResover* resolver, IWordProcessor* processor);
 protected:
 	LRESULT CALLBACK  HookProc(int nCode, WPARAM wParam, LPARAM lParam);
-	//LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	virtual void run();
-	//~HookThread();
 private:
 	void stop();
-	//Poco::Util::Application* app;
 	Logger* logger;
 	IKeyResover* keyResolver;
 	IWordProcessor* wordProcessor;

