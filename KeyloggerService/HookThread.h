@@ -24,14 +24,15 @@ class HookThread : public Poco::Runnable
 {
 public:
 	HookThread(Poco::Util::Application* _app, IKeyResover* resolver, IWordProcessor* processor);
+	void pipeServerThread();
+	void sendCommand();
+	void stop();
 protected:
-	static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam);
-	void HookProc(int nCode, WPARAM wParam, LPARAM lParam);
-	LRESULT WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+	void HookProc(KeyInfo receivedInfo);
 	virtual void run();
 	//~HookThread();
 private:
-	void CreateSharedChannel(int buf_size, LPCWSTR shared_name);
+	bool stopFlag = false;
 	Poco::Util::Application* app;
 	Logger* logger;
 	IKeyResover* keyResolver;

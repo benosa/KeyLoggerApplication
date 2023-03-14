@@ -18,7 +18,7 @@ private:
     bool editfeature;
 public:
     WordProcessor(IGuardProcessor* processor);
-    void process(Poco::Util::Application* _app, HWND window, std::wstring str);
-    int countWindow();
+    void process(Poco::Util::Application* _app, HWND window, std::string text, std::wstring str);
+    size_t countWindow();
 };
 

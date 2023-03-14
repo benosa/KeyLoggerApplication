@@ -10,13 +10,14 @@ std::wstring KeyResolver::resolveKey(int lang, int key, bool shift, bool capital
 	return str;
 }
 
-std::wstring KeyResolver::resolve(int nCode, WPARAM wParam, LPARAM lParam) {
+std::wstring KeyResolver::resolve(int lang, int nCode, WPARAM wParam, LPARAM lParam) {
 #ifdef TEST
 		int keyLayout = KEYBOARD_LANG;
 #else		
-		HWND window = GetForegroundWindow();
+		/*HWND window = GetForegroundWindow();
 		HKL keyboardLayout = GetKeyboardLayout(GetWindowThreadProcessId(window, NULL));
-		int keyLayout = reinterpret_cast<int>(keyboardLayout);
+		int keyLayout = reinterpret_cast<int>(keyboardLayout);*/
+    int keyLayout = lang;
 #endif
 
     KBDLLHOOKSTRUCT* pKeyStruct = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);

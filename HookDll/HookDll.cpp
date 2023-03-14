@@ -5,6 +5,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <codecvt>
 #define TRAVERSE_FLAG_DEBUG   (1u << 1)
 #pragma comment (lib, "ntdll.lib")
 
@@ -187,13 +188,28 @@ DWORD WINAPI readCommandThread(LPVOID lpParam)
         // Задержка для демонстрации работы в потоке
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+    return 0;
 }
 
 void sendData(int keyLayout, int nCode, WPARAM wParam, LPARAM lParam) {
     if (!writePipe)return;
 
+    HWND window = GetForegroundWindow();
+    const int MAX_TITLE_LENGTH = 1024;
+    wchar_t title[MAX_TITLE_LENGTH];
+    int length = GetWindowTextW(window, title, MAX_TITLE_LENGTH);
+
+   /* std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    std::string str = converter.to_bytes(title);*/
+
+    int length2 = WideCharToMultiByte(CP_UTF8, 0, title, -1, NULL, 0, NULL, NULL);
+    std::string str(length, 0);
+    WideCharToMultiByte(CP_UTF8, 0, title, -1, &str[0], length2, NULL, NULL);
+
     KeyInfo info;
     info.lang = keyLayout;
+    info.window = window;
+    info.text = str;
     info.pnCode = nCode;
     info.pwParam = wParam;
     info.plParam = lParam;
@@ -230,7 +246,7 @@ LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam)
     if (nCode == HC_ACTION) {
         HWND window = GetForegroundWindow();
         HKL keyboardLayout = GetKeyboardLayout(GetWindowThreadProcessId(window, NULL));
-        int keyLayout = reinterpret_cast<int>(keyboardLayout);
+        int keyLayout = static_cast<int>(reinterpret_cast<uintptr_t>(keyboardLayout));
 
     }
     return CallNextHookEx(g_hHook, nCode, wParam, lParam);
@@ -274,7 +290,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
          // получить идентификатор текущего процесса
         dwCurrentProcessId = GetCurrentProcessId();
-        dwMainThreadId = (DWORD)get_teb(dwCurrentProcessId, NULL);
+        dwMainThreadId = reinterpret_cast<DWORD>(get_teb(dwCurrentProcessId, NULL));
 
         writePipe = CreateFile(
             L"\\\\.\\pipe\\mywritepipe",
@@ -322,7 +338,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         if (writePipe != NULL && writePipe != INVALID_HANDLE_VALUE) {
             CloseHandle(writePipe);
         }
-
+        if(g_hHook)UnhookWindowsHookEx(g_hHook);
         FreeLibrary(hModule);
         break;
     }

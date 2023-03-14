@@ -60,6 +60,9 @@
     <ClCompile Include="injector\wow64.cpp">
       <Filter>Injector\Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="WindowsPipe.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="KeyloggerService.h">
@@ -109,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="injector\loaders.h">
       <Filter>Injector\Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowsPipe.h">
+      <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

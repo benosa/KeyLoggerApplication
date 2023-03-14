@@ -26,7 +26,8 @@ void WorkerThread::CreateHookThread() {
 	thread.start(runnable);
 
 	logger->information("Message from main thread");
-
+	// нужно чтобы поток завершался через флаги
+	// и ниже сделать detach
 	thread.join();
 
 	return;

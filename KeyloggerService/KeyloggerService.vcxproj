@@ -109,7 +109,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\benosa\source\repos\KeyloggerService\KeyloggerService\injector;C:\POCOpro\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,6 +144,7 @@
     <ClCompile Include="KeyResolver.cpp" />
     <ClCompile Include="NullGuardProcessor.cpp" />
     <ClCompile Include="WindowInfo.cpp" />
+    <ClCompile Include="WindowsPipe.cpp" />
     <ClCompile Include="WordProcessor.cpp" />
     <ClCompile Include="WorkerThread.cpp" />
   </ItemGroup>
@@ -162,6 +163,7 @@
     <ClInclude Include="NullGuardProcessor.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="WindowInfo.h" />
+    <ClInclude Include="WindowsPipe.h" />
     <ClInclude Include="WordProcessor.h" />
     <ClInclude Include="WorkerThread.h" />
   </ItemGroup>

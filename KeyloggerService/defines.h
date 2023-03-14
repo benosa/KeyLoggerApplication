@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #define WM_MYMESSAGE (WM_USER + 1)
 //#define WORD_BUFFER (2048)
 //#define TEST 1
@@ -7,6 +8,8 @@
 struct KeyInfo
 {
 	int lang;
+	HWND window;
+	std::string text;
 	int pnCode;
 	WPARAM pwParam;
 	LPARAM plParam;
