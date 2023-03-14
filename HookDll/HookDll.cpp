@@ -5,7 +5,6 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-#include <codecvt>
 #define TRAVERSE_FLAG_DEBUG   (1u << 1)
 #pragma comment (lib, "ntdll.lib")
 
@@ -136,17 +135,33 @@ void Stop()
 
 DWORD WINAPI readCommandThread(LPVOID lpParam)
 {
-    HANDLE readPipe = CreateFile(
+    HANDLE readPipe = CreateNamedPipe(
+        L"\\\\.\\pipe\\myreadpipe",
+        PIPE_ACCESS_DUPLEX /* | FILE_FLAG_OVERLAPPED*/,
+        PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+        PIPE_UNLIMITED_INSTANCES,
+        0,
+        0,
+        INFINITE,
+        NULL);
+
+    /*HANDLE readPipe = CreateFile(
         L"\\\\.\\pipe\\myreadpipe",
         GENERIC_READ | GENERIC_WRITE,
         0,
         NULL,
         OPEN_EXISTING,
         0,
-        NULL);
+        NULL);*/
 
     if (readPipe == INVALID_HANDLE_VALUE) {
         std::cerr << "Failed to open named pipe: " << GetLastError() << std::endl;
+        if (readPipe != NULL)CloseHandle(readPipe);
+        return 1;
+    }
+
+    if (!ConnectNamedPipe(readPipe, NULL)) {
+        std::cerr << "Failed to wait for client connection: " << GetLastError() << std::endl;
         if (readPipe != NULL)CloseHandle(readPipe);
         return 1;
     }
