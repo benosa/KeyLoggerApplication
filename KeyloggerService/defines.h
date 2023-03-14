@@ -3,6 +3,16 @@
 //#define WORD_BUFFER (2048)
 //#define TEST 1
 #define KEYLOGGERWINDOW L"KeyloggerWindow"
+
+struct KeyInfo
+{
+	int lang;
+	int pnCode;
+	WPARAM pwParam;
+	LPARAM plParam;
+};
+
+
 class Rpc {
 public:
 	enum Function {
