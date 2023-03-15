@@ -10,7 +10,7 @@ std::wstring KeyResolver::resolveKey(int lang, int key, bool shift, bool capital
 	return str;
 }
 
-std::wstring KeyResolver::resolve(int lang, int nCode, WPARAM wParam, LPARAM lParam) {
+std::wstring KeyResolver::resolve(int lang, int vkCode, bool shift, bool capital) {
 #ifdef TEST
 		int keyLayout = KEYBOARD_LANG;
 #else		
@@ -19,17 +19,14 @@ std::wstring KeyResolver::resolve(int lang, int nCode, WPARAM wParam, LPARAM lPa
 		int keyLayout = reinterpret_cast<int>(keyboardLayout);*/
     int keyLayout = lang;
 #endif
-
-    KBDLLHOOKSTRUCT* pKeyStruct = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
     std::wstring result;
-
-    shift = GetKeyState(VK_SHIFT) & 0x8000;
-    capital = (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
-
-    if (nCode == HC_ACTION && (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN))
-    {
-        result = resolveKey(keyLayout, pKeyStruct->vkCode, shift, capital);
-    }
-
+	result = resolveKey(keyLayout, vkCode, shift, capital);
     return result;
 }
+
+/*
+lang,
+key,
+shift,
+capital
+*/

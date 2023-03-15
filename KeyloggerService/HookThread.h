@@ -24,7 +24,7 @@ class HookThread : public Poco::Runnable
 {
 public:
 	HookThread(Poco::Util::Application* _app, IKeyResover* resolver, IWordProcessor* processor);
-	void pipeServerThread();
+	DWORD WINAPI pipeServerThread(LPVOID lpThreadParameter, std::wstring name);
 	void sendCommand();
 	void stop();
 protected:

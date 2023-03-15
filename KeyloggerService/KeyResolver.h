@@ -20,6 +20,6 @@ private:
 
 	std::wstring resolveKey(int lang, int key, bool shift, bool capital);
 public:
-	std::wstring resolve(int lang, int nCode, WPARAM wParam, LPARAM lParam);
+	std::wstring resolve(int lang, int vkCode, bool shift, bool capital);
 };
 
