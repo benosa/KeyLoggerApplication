@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <Poco/Pipe.h>
+#include "defines.h"
 
 class WindowsPipe: public Poco::Pipe
 {

@@ -55,16 +55,20 @@ void HookThread::HookProc(KeyInfo receivedInfo) {
 
 void HookThread::pipeServerThread()
 {
+    logger->debug("start - pipeServerThread");
     // Создаем серверный WindowsPipe
     WindowsPipe serverPipe("mywritepipe", WindowsPipe::PipeMode::Server);
+    logger->debug("start - waitForConnection()");
     // Дожидаемся подключения от сервера
     serverPipe.waitForConnection();
+    logger->debug("start - have connected");
     // Создаем PipeInputStream на основе serverPipe
     Poco::PipeInputStream istr(serverPipe);
 
     while (!stopFlag) {
         // Получение размера структуры
         std::size_t dataSize = 0;
+        logger->debug("start - istr.read");
         istr.read(reinterpret_cast<char*>(&dataSize), sizeof(dataSize));
 
         // Выделение памяти для буфера и чтение данных в буфер
@@ -74,7 +78,7 @@ void HookThread::pipeServerThread()
         // Преобразование буфера в структуру
         KeyInfo receivedInfo;
         std::memcpy(&receivedInfo, buffer, dataSize);
-
+        logger->debug("start - call HookProc");
         HookProc(receivedInfo);
 
         // Освобождение памяти, выделенной для буфера

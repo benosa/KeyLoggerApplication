@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #define WM_MYMESSAGE (WM_USER + 1)
+#define PAGE_SIZE 4096
 //#define WORD_BUFFER (2048)
 //#define TEST 1
 #define KEYLOGGERWINDOW L"KeyloggerWindow"
