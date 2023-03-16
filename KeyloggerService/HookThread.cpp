@@ -12,6 +12,9 @@
 
 using namespace std;
 
+extern std::atomic<bool> done;
+extern std::atomic<bool> done_callback;
+
 DWORD GetProcessIdByName(const wchar_t* processName) {
     DWORD pid = 0;
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -87,7 +90,7 @@ DWORD WINAPI HookThread::pipeServerThread(LPVOID lpThreadParameter, std::wstring
     timeouts.ReadTotalTimeoutConstant = 1000;
     SetCommTimeouts(serverPipe, &timeouts);
 
-    while (WaitForSingleObject(evt, 0) != WAIT_OBJECT_0)
+    while (!done)
     {
         ConnectNamedPipe(serverPipe, NULL);
         int i = GetLastError();
@@ -98,7 +101,7 @@ DWORD WINAPI HookThread::pipeServerThread(LPVOID lpThreadParameter, std::wstring
             //dwRead = 1 необходимо дя того, чтобы не попасть в бесконечный цикл при отключении клиента
             dwRead = 1;
             error = ERROR_SUCCESS;
-            while (error != ERROR_BROKEN_PIPE && dwRead != 0 && WaitForSingleObject(evt, 0) != WAIT_OBJECT_0)
+            while (error != ERROR_BROKEN_PIPE && dwRead != 0 && !done)
             {
                 startFlag = true;
                 dwRead = 0;
@@ -117,7 +120,7 @@ DWORD WINAPI HookThread::pipeServerThread(LPVOID lpThreadParameter, std::wstring
         }
         Sleep(100);
     }
-    logger->debug("[*] Server stopped");
+    if (logger)logger->debug("[*] Server stopped");
 
     CloseHandle(serverPipe);
     ret = EXIT_SUCCESS;
@@ -127,12 +130,35 @@ _exit:
 }
 
 void HookThread::sendCommand() {
-    // Создаем серверный WindowsPipe
-    WindowsPipe clientPipe("myreadpipe", WindowsPipe::PipeMode::Client);
-    // Создаем PipeInputStream на основе serverPipe
-    Poco::PipeOutputStream ostr(clientPipe);
-    ostr << "stop";
+
+    HANDLE writePipe = CreateFile(
+        L"\\\\.\\pipe\\myreadpipe",
+        GENERIC_WRITE,
+        0,
+        NULL,
+        OPEN_EXISTING,
+        0,
+        NULL);
+
+    if (writePipe == INVALID_HANDLE_VALUE) {
+        logger->debug("[*] Send Command Error. Failed to open named pipe: " + GetLastError());
+    }
+    std::string out("stop");
+    DWORD bytesWritten = 0;
+    WriteFile(writePipe, out.c_str(), out.size(), &bytesWritten, NULL);
+    if (bytesWritten != out.size())
+    {
+        logger->debug("[*] Send Command to Client Error! Failed write structure size to named pipe: " + GetLastError());
+    }
+
+    //// Создаем серверный WindowsPipe
+    //WindowsPipe clientPipe("myreadpipe", WindowsPipe::PipeMode::Client);
+    //// Создаем PipeInputStream на основе serverPipe
+    //Poco::PipeOutputStream ostr(clientPipe);
+    //ostr << "stop";
     logger->debug("[*] Send STOP Command to Client!");
+    Sleep(2000);
+    done_callback = true;
 }
 
 void serverThreadFunc()
@@ -170,19 +196,22 @@ void HookThread::run()
     Poco::UnicodeConverter::toUTF16(appPath, wstr);
     std::wstring resultStr = wstr + L"HookDll.dll";
 
-    /*bool result = injectDll(parentProcessId, (WCHAR*)resultStr.c_str());
+    bool result = injectDll(parentProcessId, (WCHAR*)resultStr.c_str());
     if (result) {
         logger->error("Cann't inject our Dll!");
         stop();
         return;
-    }*/
+    }
 
-    MSG msg = { };
+    /*MSG msg = { };
     while (GetMessage(&msg, NULL, 0, 0) > 0 && WaitForSingleObject(doneEvent, 0) != WAIT_OBJECT_0) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
+    }*/
+    while (!done) {
+        Sleep(1000);
     }
-
+    logger->debug("[*] Send STOP Command to Client!");
     stop();
     //CloseHandle(hServerThread);
 }

