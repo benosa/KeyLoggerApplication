@@ -17,17 +17,14 @@
 class WorkerThread
 {
 private:
-	inline static DWORD tid = 0;
+	HANDLE doneEvent;
 	IKeyResover* keyResolver;
 	IWordProcessor* wordProcessor;
 	Poco::Util::Application* app;
 	Poco::Logger* logger;
-	//void HookJob();
-	//LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam);
 public:
-	WorkerThread(IKeyResover* resolver, IWordProcessor* processor);
+	WorkerThread(HANDLE  doneEvent, IKeyResover* resolver, IWordProcessor* processor);
 	void CreateHookThread();
-	void static RemoveHookThread(int code);
 
 };
 

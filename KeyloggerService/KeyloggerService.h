@@ -39,8 +39,6 @@ public:
 protected:
     void initialize(Application& self);
 
-    void removelKeyboardHookProcess();
-
     void uninitialize();
 
     void defineOptions(OptionSet& options);
@@ -52,6 +50,8 @@ protected:
     int main(const std::vector<std::string>& args);
 
 private:
+    HANDLE doneEvent;
+
     bool _helpRequested;
 
     std::string appName;

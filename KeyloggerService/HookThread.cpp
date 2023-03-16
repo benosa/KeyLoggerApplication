@@ -32,11 +32,12 @@ DWORD GetProcessIdByName(const wchar_t* processName) {
 }
 
 
-HookThread::HookThread(Poco::Util::Application* _app, IKeyResover* resolver, IWordProcessor* processor) : app(_app) {
+HookThread::HookThread(HANDLE done, Poco::Util::Application* _app, IKeyResover* resolver, IWordProcessor* processor) : doneEvent(&done), app(_app) {
     logger = &app->logger().get("AppLogger");
     keyResolver = resolver;
     wordProcessor = processor;
     pBuf = NULL;
+    serverPipe = NULL;
 }
 
 void HookThread::HookProc(KeyInfo receivedInfo) {
@@ -45,9 +46,6 @@ void HookThread::HookProc(KeyInfo receivedInfo) {
     std::wstring result = keyResolver->resolve(receivedInfo.lang, receivedInfo.vkCode, receivedInfo.shift, receivedInfo.capital);
 
     if (wordProcessor == NULL) throw std::runtime_error("WordProcessor is NULL");
-
-    //HWND window = GetForegroundWindow();
-    //void process(Poco::Util::Application * _app, HWND window, std::string text, std::wstring str);
     wordProcessor->process(app, receivedInfo.window, receivedInfo.title, result);
 
     return;
@@ -57,7 +55,7 @@ void HookThread::HookProc(KeyInfo receivedInfo) {
 DWORD WINAPI HookThread::pipeServerThread(LPVOID lpThreadParameter, std::wstring name)
 {
     SECURITY_ATTRIBUTES sa;
-    HANDLE hPipe;
+    serverPipe;
     DWORD dwRead = 1;
     DWORD error;
     COMMTIMEOUTS timeouts;
@@ -69,44 +67,44 @@ DWORD WINAPI HookThread::pipeServerThread(LPVOID lpThreadParameter, std::wstring
     DWORD dwModeWait = PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT;
 
     DWORD ret = EXIT_FAILURE;
+    std::string _name;
+    Poco::UnicodeConverter::toUTF8(name, _name);
 
-
-    _tprintf(_T("[*] Starting server at %s\n"), name);
-
+    logger->debug("[*] Starting server at" + _name);
 
     InitSecurityAttributes(&sa);
 
-    hPipe = CreateNamedPipe(name.c_str(), PIPE_ACCESS_DUPLEX, dwModeWait,
+    serverPipe = CreateNamedPipe(name.c_str(), PIPE_ACCESS_DUPLEX, dwModeWait,
         PIPE_UNLIMITED_INSTANCES, PAGE_SIZE, PAGE_SIZE, INFINITE, &sa);
-    if (hPipe == INVALID_HANDLE_VALUE)
+    if (serverPipe == INVALID_HANDLE_VALUE)
     {
-        _tprintf(_T("[*] Failed to create named pipe (%u)\n"), GetLastError());
+        logger->debug("[*] Failed to create named pipe (" + std::to_string(GetLastError()) + ")");
         goto _exit;
     }
 
 
     ZeroMemory(&timeouts, sizeof(COMMTIMEOUTS));
     timeouts.ReadTotalTimeoutConstant = 1000;
-    SetCommTimeouts(hPipe, &timeouts);
+    SetCommTimeouts(serverPipe, &timeouts);
 
     while (WaitForSingleObject(evt, 0) != WAIT_OBJECT_0)
     {
-        ConnectNamedPipe(hPipe, NULL);
+        ConnectNamedPipe(serverPipe, NULL);
         int i = GetLastError();
         if (i == ERROR_PIPE_CONNECTED)
         {
-            _tprintf(_T("[*] Client connected\n"));
-            SetNamedPipeHandleState(hPipe, &dwModeWait, NULL, NULL);
-            //dwRead необходимо дя того, чтобы не попасть в бесконечный цикл при отключении клиента
+            logger->debug("[*] Client connected");
+            SetNamedPipeHandleState(serverPipe, &dwModeWait, NULL, NULL);
+            //dwRead = 1 необходимо дя того, чтобы не попасть в бесконечный цикл при отключении клиента
             dwRead = 1;
             error = ERROR_SUCCESS;
-            while (error != ERROR_BROKEN_PIPE && dwRead != 0)
+            while (error != ERROR_BROKEN_PIPE && dwRead != 0 && WaitForSingleObject(evt, 0) != WAIT_OBJECT_0)
             {
                 startFlag = true;
                 dwRead = 0;
                  // чтение структуры из канала
                 KeyInfo data;
-                ReadFile(hPipe, &data, sizeof(data), &dwRead, NULL);
+                ReadFile(serverPipe, &data, sizeof(data), &dwRead, NULL);
                 if (dwRead == 0)break;
                 logger->debug("Data reading from client");
                 HookProc(data);
@@ -114,52 +112,19 @@ DWORD WINAPI HookThread::pipeServerThread(LPVOID lpThreadParameter, std::wstring
             }
             logger->debug("[*] Client disconnected\n");
 
-            SetNamedPipeHandleState(hPipe, &dwModeNoWait, NULL, NULL);
-            DisconnectNamedPipe(hPipe);
+            SetNamedPipeHandleState(serverPipe, &dwModeNoWait, NULL, NULL);
+            DisconnectNamedPipe(serverPipe);
         }
         Sleep(100);
     }
     logger->debug("[*] Server stopped");
 
-    CloseHandle(hPipe);
+    CloseHandle(serverPipe);
     ret = EXIT_SUCCESS;
 
 _exit:
     return ret;
 }
-
-//void HookThread::pipeServerThread()
-//{
-//    logger->debug("start - pipeServerThread");
-//    // Создаем серверный WindowsPipe
-//    WindowsPipe serverPipe("mywritepipe", WindowsPipe::PipeMode::Server);
-//    logger->debug("start - waitForConnection()");
-//    // Дожидаемся подключения от сервера
-//    serverPipe.waitForConnection();
-//    logger->debug("start - have connected");
-//    // Создаем PipeInputStream на основе serverPipe
-//    Poco::PipeInputStream istr(serverPipe);
-//
-//    while (!stopFlag) {
-//        // Получение размера структуры
-//        std::size_t dataSize = 0;
-//        logger->debug("start - istr.read");
-//        istr.read(reinterpret_cast<char*>(&dataSize), sizeof(dataSize));
-//
-//        // Выделение памяти для буфера и чтение данных в буфер
-//        char* buffer = new char[dataSize];
-//        istr.read(buffer, dataSize);
-//
-//        // Преобразование буфера в структуру
-//        KeyInfo receivedInfo;
-//        std::memcpy(&receivedInfo, buffer, dataSize);
-//        logger->debug("start - call HookProc");
-//        HookProc(receivedInfo);
-//
-//        // Освобождение памяти, выделенной для буфера
-//        delete[] buffer;
-//    }
-//}
 
 void HookThread::sendCommand() {
     // Создаем серверный WindowsPipe
@@ -167,6 +132,7 @@ void HookThread::sendCommand() {
     // Создаем PipeInputStream на основе serverPipe
     Poco::PipeOutputStream ostr(clientPipe);
     ostr << "stop";
+    logger->debug("[*] Send STOP Command to Client!");
 }
 
 void serverThreadFunc()
@@ -175,19 +141,22 @@ void serverThreadFunc()
 }
 
 void HookThread::stop() {
-    stopFlag = true;
+    // Отменить операцию чтения в канале сервера, чтобы выйти из блокировки чтения
+    if (!CancelIo(serverPipe)) {
+        // Обработка ошибки
+    }
     sendCommand();
-    PostQuitMessage(0);
+    //PostQuitMessage(0);
 }
 
 void HookThread::run()
 {
-    HANDLE doneEvent;
+    
 
-    doneEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    //doneEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     //Poco::RunnableAdapter<HookThread> runnable(*this, &HookThread::pipeServerThread);
-    std::thread myThread([this, doneEvent]() {
+    std::thread myThread([&]() {
         this->pipeServerThread(doneEvent, L"\\\\.\\pipe\\mywritepipe");
         });
     myThread.detach();
@@ -209,12 +178,12 @@ void HookThread::run()
     }*/
 
     MSG msg = { };
-    while (GetMessage(&msg, NULL, 0, 0) > 0) {
+    while (GetMessage(&msg, NULL, 0, 0) > 0 && WaitForSingleObject(doneEvent, 0) != WAIT_OBJECT_0) {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
     }
 
-    SetEvent(doneEvent);
+    stop();
     //CloseHandle(hServerThread);
 }
 

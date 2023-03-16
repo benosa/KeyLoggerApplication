@@ -100,14 +100,14 @@ _exit:
 
 void sendData(int keyLayout, int nCode, WPARAM wParam, LPARAM lParam) {
     //if (!writePipe)return;
-    
+
     HWND window = GetForegroundWindow();
     const int MAX_TITLE_LENGTH = 1024;
     wchar_t title[MAX_TITLE_LENGTH];
     int length = GetWindowTextW(window, title, MAX_TITLE_LENGTH);
 
-   /* std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    std::string str = converter.to_bytes(title);*/
+    /* std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+     std::string str = converter.to_bytes(title);*/
 
     int length2 = WideCharToMultiByte(CP_UTF8, 0, title, -1, NULL, 0, NULL, NULL);
     std::string str(length2, 0);
@@ -133,7 +133,7 @@ void sendData(int keyLayout, int nCode, WPARAM wParam, LPARAM lParam) {
     WriteFile(writePipe, &info, sizeof(info), &bytesWritten, NULL);
     if (bytesWritten != sizeof(info))
     {
-        printToLog("Failed write structure size to named pipe: " + std::to_string(GetLastError()),"!SendData.log");
+        printToLog("Failed write structure size to named pipe: " + std::to_string(GetLastError()), "!SendData.log");
     }
     //CloseHandle(writePipe);
 }
@@ -156,7 +156,7 @@ DWORD WINAPI createHookProcess(LPVOID lpParam)
 {
     g_hHook = SetWindowsHookEx(WH_KEYBOARD_LL, HookProc, NULL, 0);
     MSG message;
-   
+
     if (g_hHook != NULL)
     {
         while (GetMessage(&message, NULL, 0, 0))
@@ -169,7 +169,7 @@ DWORD WINAPI createHookProcess(LPVOID lpParam)
     return FALSE;
 }
 
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) 
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
 
     switch (ul_reason_for_call)
@@ -201,16 +201,17 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
                 UnhookWindowsHookEx(g_hHook);
                 return FALSE;
             }
-        }else
+        }
+        else
         {
-            if(g_hHook)UnhookWindowsHookEx(g_hHook);
+            if (g_hHook)UnhookWindowsHookEx(g_hHook);
             if (hEvent != NULL)CloseHandle(hEvent);
             if (hThread != NULL)CloseHandle(hThread);
             if (writePipe != NULL && writePipe != INVALID_HANDLE_VALUE) {
                 CloseHandle(writePipe);
             }
             return FALSE;
-        }       
+        }
         break;
     case DLL_PROCESS_DETACH:
         // Сигнализируем потоку, что нужно завершить работу
@@ -221,11 +222,11 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 
         // Закрываем дескриптор события и потока
         if (hEvent != NULL)CloseHandle(hEvent);
-        if(hThread != NULL)CloseHandle(hThread);
+        if (hThread != NULL)CloseHandle(hThread);
         if (writePipe != NULL && writePipe != INVALID_HANDLE_VALUE) {
             CloseHandle(writePipe);
         }
-        if(g_hHook)UnhookWindowsHookEx(g_hHook);
+        if (g_hHook)UnhookWindowsHookEx(g_hHook);
         FreeLibrary(hModule);
         break;
     }
