@@ -63,6 +63,12 @@
     <ClCompile Include="WindowsPipe.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="IcuGuardProcessor.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="RawGuardProcessor.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="KeyloggerService.h">
@@ -114,6 +120,12 @@
       <Filter>Injector\Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="WindowsPipe.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="IcuGuardProcessor.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="RawGuardProcessor.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

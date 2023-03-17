@@ -1,5 +1,5 @@
 #include "NullGuardProcessor.h"
 
-bool NullGuardProcessor::process(bool stopStatus, std::wstring sequence) {
-	return true;
+std::string NullGuardProcessor::process(std::string stopWord, std::wstring sequence) {
+	return "a";
 }

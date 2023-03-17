@@ -108,13 +108,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\benosa\source\repos\KeyloggerService\KeyloggerService\injector;C:\POCOpro\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\icu-windows\include;C:\Users\benosa\source\repos\KeyloggerService\KeyloggerService\injector;C:\POCOpro\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\POCOpro\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\icu-windows\lib64;C:\POCOpro\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>icudt.lib;icuin.lib;icuio.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -135,6 +136,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="HookThread.cpp" />
+    <ClCompile Include="IcuGuardProcessor.cpp" />
     <ClCompile Include="injector\fileutils.cpp" />
     <ClCompile Include="injector\InjectDll.cpp" />
     <ClCompile Include="injector\process.cpp" />
@@ -143,6 +145,7 @@
     <ClCompile Include="KeyloggerService.cpp" />
     <ClCompile Include="KeyResolver.cpp" />
     <ClCompile Include="NullGuardProcessor.cpp" />
+    <ClCompile Include="RawGuardProcessor.cpp" />
     <ClCompile Include="WindowInfo.cpp" />
     <ClCompile Include="WindowsPipe.cpp" />
     <ClCompile Include="WordProcessor.cpp" />
@@ -152,6 +155,7 @@
     <ClInclude Include="AdapterWorker.h" />
     <ClInclude Include="defines.h" />
     <ClInclude Include="HookThread.h" />
+    <ClInclude Include="IcuGuardProcessor.h" />
     <ClInclude Include="IGuardProcessor.h" />
     <ClInclude Include="IKeyResolver.h" />
     <ClInclude Include="injector\InjectDll.h" />
@@ -161,6 +165,7 @@
     <ClInclude Include="KeyloggerService.h" />
     <ClInclude Include="KeyResolver.h" />
     <ClInclude Include="NullGuardProcessor.h" />
+    <ClInclude Include="RawGuardProcessor.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="WindowInfo.h" />
     <ClInclude Include="WindowsPipe.h" />

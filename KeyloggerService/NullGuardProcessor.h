@@ -6,6 +6,6 @@ class NullGuardProcessor :
     public IGuardProcessor
 {
 public:
-    bool process(bool stopStatus, std::wstring sequence);
+    std::string process(std::string stopWord, std::wstring sequence);
 };
 

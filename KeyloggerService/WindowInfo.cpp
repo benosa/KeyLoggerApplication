@@ -95,7 +95,9 @@ void WindowInfo::addChar(std::wstring str) {
     else {
         // с каждым поступлением символа на вход, запрашиваем у модуля GuardModule статус присутствия
         // стоп слов или подслов
-        bool guardResult = guard->process(stopStatus, stream.str());
+        std::string result = guard->process((stopStatus)? stopWord:"", stream.str());
+        stopWord = result;
+        bool guardResult = (result.size() > 0) ? true : false;
         // guardResult && stopStatus -> alarmState = true
         // !guardResult && stopStatus -> stopStatus = true, alarmState = false
         // guardResult && !stopStatus -> stopStatus = true, alarmState = false

@@ -20,6 +20,7 @@ private:
     std::wstring title;
     std::wstringstream stream;
     int caret;
+    std::string stopWord;
     bool stopStatus;
     bool alarmState;
     //int countWords;

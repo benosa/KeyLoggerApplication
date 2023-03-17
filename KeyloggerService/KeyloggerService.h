@@ -55,4 +55,6 @@ private:
     bool _helpRequested;
 
     std::string appName;
+
+    std::string appPath;
 };

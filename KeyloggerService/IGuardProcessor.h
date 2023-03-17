@@ -1,7 +1,9 @@
 #pragma once
 #include <sstream>
+#include <unicode/regex.h>
+#include <unicode/unistr.h>
 
 class IGuardProcessor {
 public:
-	virtual bool process(bool stopStatus, std::wstring sequence) = 0;
+	virtual std::string process(std::string stopWord, std::wstring sequence) = 0;
 };

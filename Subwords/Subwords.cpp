@@ -2,35 +2,16 @@
 #include <iostream>
 #include <string>
 #include <vector>
-
 #include "Poco/JSON/Parser.h"
-#include "Poco/Dynamic/Var.h"
-#include "Poco/JSON/Object.h"
-#include "Poco/JSON/Array.h"
-#include "Poco/JSON/Stringifier.h"
-#include "Poco/JSON/JSONException.h"
-#include <Poco/UnicodeConverter.h>
-#include <Poco/UTFString.h>
-#include <Poco/FileStream.h>
+#include <codecvt>
 #include <regex>
-
 #include <map>
 #include <filesystem>
 #include <locale>
 #include <codecvt>
 #include <cwctype>
-#define ENCODING_ASCII      0
-#define ENCODING_UTF8       1
-#define ENCODING_UTF16LE    2
-#define ENCODING_UTF16BE    3
-#define _CRT_SECURE_NO_WARNINGS 1
-
-#include <Poco/FileStream.h>
-#include <Poco/TextConverter.h>
-#include <Poco/UTF8Encoding.h>
-#include <Poco/UTF32Encoding.h>
-#include <Poco/Windows1251Encoding.h>
-#include <Poco/TextIterator.h>
+#include <unicode/regex.h>
+#include <unicode/unistr.h>
 
 class JsonTree {
 public:
@@ -65,68 +46,8 @@ public:
         }
     }
 
-    /*bool findPattern(const std::string& word, const std::string& stopWord) const {
-        if (stopWord.size() < word.size()) {
-            return false;
-        }
-
-        if (word == stopWord) {
-            return true;
-        }
-
-        if (word.find("*") != std::string::npos) {
-            std::string left = word.substr(0, word.find("*"));
-            std::string right = word.substr(word.find("*") + 1);
-            size_t leftPos = stopWord.find(left);
-            size_t rightPos = 0;
-
-            do {
-                if (leftPos == std::string::npos) {
-                    break;
-                }
-                rightPos = stopWord.find(right, leftPos + left.size());
-                if (rightPos != std::string::npos) {
-                    return true;
-                }
-                leftPos = stopWord.find(left, leftPos + left.size());
-            } while (leftPos != std::string::npos);
-        }
-        else if (word.find("?") != std::string::npos) {
-            std::string left = word.substr(0, word.find("?"));
-            std::string right = word.substr(word.find("?") + 1);
-
-            for (size_t i = 0; i < stopWord.size() - word.size() + 1; ++i) {
-                if (stopWord.substr(i, left.size()) == left && stopWord.substr(i + left.size() + 1, right.size()) == right) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }*/
-    static std::string toLower(const std::string& str) {
-        std::setlocale(LC_ALL, "en_US.utf8"); // or another appropriate locale
-        std::wstring_convert<std::codecvt_utf8<wchar_t>> conv;
-        std::wstring wideStr = conv.from_bytes(str);
-        std::transform(wideStr.begin(), wideStr.end(), wideStr.begin(),
-            [](wchar_t c) { return std::towlower(c); });
-        return conv.to_bytes(wideStr);
-    }
-
-    bool findPattern(const std::string& word, const std::string& stopWord) const {
-        std::string lowerWord = toLower(word);
-        std::string lowerStopWord = toLower(stopWord);
-        // Если размер stopWord меньше размера word, возвращаем false
-        if (lowerStopWord.size() < word.size()) {
-            return false;
-        }
-
-        // Если слова совпадают, возвращаем true
-        if (lowerWord == lowerStopWord) {
-            return true;
-        }
-
-        std::string pattern = lowerWord;
+    std::string createPattern(const std::string& word) const {
+        std::string pattern = word;
         size_t pos = 0;
 
         // Заменяем все символы '*' на '.*' в pattern
@@ -142,24 +63,45 @@ public:
             pos += 1;
         }
 
-        try {
-            // Создаем объект регулярного выражения re на основе pattern
-            std::regex re(pattern);
-            // Если stopWord соответствует регулярному выражению re, возвращаем true
-            if (std::regex_search(lowerStopWord, re)) {
-                return true;
-            }
-            /*if (std::regex_match(lowerStopWord, re)) {
-                return true;
-            }*/
-        }
-        catch (const std::regex_error& e) {
-            // Выводим сообщение об ошибке при работе с регулярными выражениями
-            std::cerr << "Ошибка регулярного выражения: " << e.what() << std::endl;
+        // Возвращаем регулярное выражение, созданное на основе шаблона
+        return pattern;
+    }
+
+    bool findPattern(const std::string& word, const std::string& stopWord) const {
+        icu::UnicodeString uWord = icu::UnicodeString::fromUTF8(word);
+        icu::UnicodeString uStopWord = icu::UnicodeString::fromUTF8(stopWord);
+
+        uWord = uWord.toLower();
+        uStopWord = uStopWord.toLower();
+
+        if (uStopWord.length() < uWord.length()) {
+            return false;
         }
 
-        // Если ни одно из условий выше не выполняется, возвращаем false
-        return false;
+        if (uWord == uStopWord) {
+            return true;
+        }
+
+        icu::UnicodeString pattern = icu::UnicodeString::fromUTF8(createPattern(word));
+        UErrorCode status = U_ZERO_ERROR;
+        icu::RegexMatcher* matcher = new icu::RegexMatcher(pattern, uStopWord, 0, status);
+
+        if (U_FAILURE(status)) {
+            delete matcher;
+            std::cerr << "Ошибка регулярного выражения: " << u_errorName(status) << std::endl;
+            return false;
+        }
+
+        bool foundMatch = false;
+
+        while (matcher->find(status)) {
+            foundMatch = true;
+            // Выполнение действий с найденным совпадением, если необходимо
+        }
+
+        delete matcher;
+
+        return foundMatch;
     }
 
     void printJsonTree() {
@@ -204,11 +146,6 @@ private:
 };
 
 int main() {
-    std::string input = "ОпреПрезидентамихотимчто-то мне сделать!";
-    std::string output = JsonTree::toLower(input);
-    std::cout << "Input: " << input << std::endl;
-    std::cout << "Output: " << output << std::endl;
-
     JsonTree tree("C:\\Users\\benosa\\source\\repos\\KeyloggerService\\x64\\Debug\\tree.json");
     tree.printJsonTree();
     std::cout << std::boolalpha;
