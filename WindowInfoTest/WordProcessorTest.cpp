@@ -20,7 +20,7 @@ namespace WindowInfoTest
             switch (message)
             {
             case WM_MYMESSAGE:
-                // обработка сообщений для нашего виртуального окна
+                // РѕР±СЂР°Р±РѕС‚РєР° СЃРѕРѕР±С‰РµРЅРёР№ РґР»СЏ РЅР°С€РµРіРѕ РІРёСЂС‚СѓР°Р»СЊРЅРѕРіРѕ РѕРєРЅР°
                 break;
             default:
                 return DefWindowProc(hWnd, message, wParam, lParam);
@@ -37,7 +37,7 @@ namespace WindowInfoTest
             wc.lpszClassName = L"MyClass";
             RegisterClass(&wc);
 
-            // создание окна
+            // СЃРѕР·РґР°РЅРёРµ РѕРєРЅР°
             hWnd = CreateWindow(L"MyClass", L"MyWindow", WS_OVERLAPPEDWINDOW,
                 CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
                 NULL, NULL, hModule, NULL);

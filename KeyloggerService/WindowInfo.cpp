@@ -1,4 +1,4 @@
-﻿#include "WindowInfo.h"
+#include "WindowInfo.h"
 
 
 WindowInfo::WindowInfo(Poco::Util::Application* _app, std::wstring title, IGuardProcessor* processor) : app(_app), guard(processor) {

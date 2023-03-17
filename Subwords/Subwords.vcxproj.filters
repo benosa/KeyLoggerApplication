@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="KillDll.cpp">
+    <ClCompile Include="Subwords.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>

@@ -10,8 +10,8 @@ int KEYBOARD_LANG = 67699721;
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 /// <summary>
-/// Для теста обязательно необходиму в файле defines.h выставлять TEST в 1 
-/// Здесь ешё можно много чего добавлять, например клавиатура NUM PAD
+/// Р”Р»СЏ С‚РµСЃС‚Р° РѕР±СЏР·Р°С‚РµР»СЊРЅРѕ РЅРµРѕР±С…РѕРґРёРјСѓ РІ С„Р°Р№Р»Рµ defines.h РІС‹СЃС‚Р°РІР»СЏС‚СЊ TEST РІ 1 
+/// Р—РґРµСЃСЊ РµС€С‘ РјРѕР¶РЅРѕ РјРЅРѕРіРѕ С‡РµРіРѕ РґРѕР±Р°РІР»СЏС‚СЊ, РЅР°РїСЂРёРјРµСЂ РєР»Р°РІРёР°С‚СѓСЂР° NUM PAD
 /// </summary>
 namespace KeyResolverTests
 {
@@ -193,10 +193,10 @@ namespace KeyResolverTests
         {
             KEYBOARD_LANG = 68748313;
             /*
-            *   а-я
+            *   Р°-СЏ
             */
-            wchar_t rus[26] = { L'ф',L'и',L'с',L'в',L'у',L'а',L'п',L'р',L'ш',L'о',L'л',L'д',L'ь',L'т',L'щ',L'з',L'й',L'к',L'ы',L'е',L'г',L'м',L'ц',L'ч',L'н',L'я'};
-            wchar_t rusUpper[26] = { L'Ф',L'И',L'С',L'В',L'У',L'А',L'П',L'Р',L'Ш',L'О',L'Л',L'Д',L'Ь',L'Т',L'Щ',L'З',L'Й',L'К',L'Ы',L'Е',L'Г',L'М',L'Ц',L'Ч',L'Н',L'Я' };
+            wchar_t rus[26] = { L'С„',L'Рё',L'СЃ',L'РІ',L'Сѓ',L'Р°',L'Рї',L'СЂ',L'С€',L'Рѕ',L'Р»',L'Рґ',L'СЊ',L'С‚',L'С‰',L'Р·',L'Р№',L'Рє',L'С‹',L'Рµ',L'Рі',L'Рј',L'С†',L'С‡',L'РЅ',L'СЏ'};
+            wchar_t rusUpper[26] = { L'Р¤',L'Р',L'РЎ',L'Р’',L'РЈ',L'Рђ',L'Рџ',L'Р ',L'РЁ',L'Рћ',L'Р›',L'Р”',L'Р¬',L'Рў',L'Р©',L'Р—',L'Р™',L'Рљ',L'Р«',L'Р•',L'Р“',L'Рњ',L'Р¦',L'Р§',L'Рќ',L'РЇ' };
             wchar_t strNormal[11] = { L';',L'/',L'`',L'[',L'\\',L']',L'\'',L'=',L',',L'-',L'.' };
             wchar_t strShift[11] = { L':',L'?',L'~',L'{',L'|', L'}',L'\"',L'+',L'<',L'_',L'>' };
 
@@ -297,7 +297,7 @@ namespace KeyResolverTests
             *   SHIFT 0-9
             */
             for (int keyCode = 0x30, i = 0; keyCode <= 0x39; keyCode++, i++) {
-                wchar_t str[10] = { L')',L'!',L'\"',L'№',L';',L'%',L':',L'?',L'*',L'(' };
+                wchar_t str[10] = { L')',L'!',L'\"',L'в„–',L';',L'%',L':',L'?',L'*',L'(' };
                 KBDLLHOOKSTRUCT keystroke;
                 keystroke.vkCode = keyCode;
                 keystroke.scanCode = MapVirtualKey(keyCode, MAPVK_VK_TO_VSC);
@@ -319,7 +319,7 @@ namespace KeyResolverTests
             *   OEM
             */
             int oem[11] = { VK_OEM_1, VK_OEM_2 , VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6, VK_OEM_7, VK_OEM_PLUS, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD };
-            wchar_t oemLow[11] = { L'ж',L'.',L'ё',L'х',L'\\', L'ъ',L'э',L'=',L'б',L'-',L'ю' };
+            wchar_t oemLow[11] = { L'Р¶',L'.',L'С‘',L'С…',L'\\', L'СЉ',L'СЌ',L'=',L'Р±',L'-',L'СЋ' };
             for (int i = 0; i < 11; i++) {
                 KBDLLHOOKSTRUCT keystroke;
                 keystroke.vkCode = oem[i];
@@ -339,7 +339,7 @@ namespace KeyResolverTests
             /*
             *   OEM SHIFT
             */
-            wchar_t oemUpper[11] = { L'Ж',L',',L'Ё',L'Х',L'/', L'Ъ',L'Э',L'+',L'Б',L'_',L'Ю' };
+            wchar_t oemUpper[11] = { L'Р–',L',',L'РЃ',L'РҐ',L'/', L'РЄ',L'Р­',L'+',L'Р‘',L'_',L'Р®' };
             for (int i = 0; i < 11; i++) {
                 KBDLLHOOKSTRUCT keystroke;
                 keystroke.vkCode = oem[i];

@@ -1,4 +1,4 @@
-﻿#if defined(_M_IX86)
+#if defined(_M_IX86)
 
 void ExecuteNative64(void *shellcode, void *arg)
 {

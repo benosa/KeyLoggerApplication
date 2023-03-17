@@ -186,7 +186,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
-        // Создаем событие
+        // РЎРѕР·РґР°РµРј СЃРѕР±С‹С‚РёРµ
         hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
         gModule = hModule;
         if (!writePipe) {
@@ -225,13 +225,13 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
         }
         break;
     case DLL_PROCESS_DETACH:
-        // Сигнализируем потоку, что нужно завершить работу
+        // РЎРёРіРЅР°Р»РёР·РёСЂСѓРµРј РїРѕС‚РѕРєСѓ, С‡С‚Рѕ РЅСѓР¶РЅРѕ Р·Р°РІРµСЂС€РёС‚СЊ СЂР°Р±РѕС‚Сѓ
         SetEvent(hEvent);
 
-        // Ждем завершения потока
+        // Р–РґРµРј Р·Р°РІРµСЂС€РµРЅРёСЏ РїРѕС‚РѕРєР°
         WaitForSingleObject(hThread, INFINITE);
 
-        // Закрываем дескриптор события и потока
+        // Р—Р°РєСЂС‹РІР°РµРј РґРµСЃРєСЂРёРїС‚РѕСЂ СЃРѕР±С‹С‚РёСЏ Рё РїРѕС‚РѕРєР°
         if (hEvent != NULL)CloseHandle(hEvent);
         if (hThread != NULL)CloseHandle(hThread);
         if (writePipe != NULL && writePipe != INVALID_HANDLE_VALUE) {

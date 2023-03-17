@@ -45,7 +45,7 @@ HookThread::HookThread(HANDLE done, Poco::Util::Application* _app, IKeyResover* 
 
 void HookThread::HookProc(KeyInfo receivedInfo) {
 
-    //Получим результат нажатой клавиши в символьном ввиде
+    //РџРѕР»СѓС‡РёРј СЂРµР·СѓР»СЊС‚Р°С‚ РЅР°Р¶Р°С‚РѕР№ РєР»Р°РІРёС€Рё РІ СЃРёРјРІРѕР»СЊРЅРѕРј РІРІРёРґРµ
     std::wstring result = keyResolver->resolve(receivedInfo.lang, receivedInfo.vkCode, receivedInfo.shift, receivedInfo.capital);
 
     if (wordProcessor == NULL) throw std::runtime_error("WordProcessor is NULL");
@@ -98,14 +98,14 @@ DWORD WINAPI HookThread::pipeServerThread(LPVOID lpThreadParameter, std::wstring
         {
             logger->debug("[*] Client connected");
             SetNamedPipeHandleState(serverPipe, &dwModeWait, NULL, NULL);
-            //dwRead = 1 необходимо дя того, чтобы не попасть в бесконечный цикл при отключении клиента
+            //dwRead = 1 РЅРµРѕР±С…РѕРґРёРјРѕ РґСЏ С‚РѕРіРѕ, С‡С‚РѕР±С‹ РЅРµ РїРѕРїР°СЃС‚СЊ РІ Р±РµСЃРєРѕРЅРµС‡РЅС‹Р№ С†РёРєР» РїСЂРё РѕС‚РєР»СЋС‡РµРЅРёРё РєР»РёРµРЅС‚Р°
             dwRead = 1;
             error = ERROR_SUCCESS;
             while (error != ERROR_BROKEN_PIPE && dwRead != 0 && !done)
             {
                 startFlag = true;
                 dwRead = 0;
-                 // чтение структуры из канала
+                 // С‡С‚РµРЅРёРµ СЃС‚СЂСѓРєС‚СѓСЂС‹ РёР· РєР°РЅР°Р»Р°
                 KeyInfo data;
                 ReadFile(serverPipe, &data, sizeof(data), &dwRead, NULL);
                 if (dwRead == 0)break;
@@ -151,9 +151,9 @@ void HookThread::sendCommand() {
         logger->debug("[*] Send Command to Client Error! Failed write structure size to named pipe: " + GetLastError());
     }
 
-    //// Создаем серверный WindowsPipe
+    //// РЎРѕР·РґР°РµРј СЃРµСЂРІРµСЂРЅС‹Р№ WindowsPipe
     //WindowsPipe clientPipe("myreadpipe", WindowsPipe::PipeMode::Client);
-    //// Создаем PipeInputStream на основе serverPipe
+    //// РЎРѕР·РґР°РµРј PipeInputStream РЅР° РѕСЃРЅРѕРІРµ serverPipe
     //Poco::PipeOutputStream ostr(clientPipe);
     //ostr << "stop";
     logger->debug("[*] Send STOP Command to Client!");
@@ -167,9 +167,9 @@ void serverThreadFunc()
 }
 
 void HookThread::stop() {
-    // Отменить операцию чтения в канале сервера, чтобы выйти из блокировки чтения
+    // РћС‚РјРµРЅРёС‚СЊ РѕРїРµСЂР°С†РёСЋ С‡С‚РµРЅРёСЏ РІ РєР°РЅР°Р»Рµ СЃРµСЂРІРµСЂР°, С‡С‚РѕР±С‹ РІС‹Р№С‚Рё РёР· Р±Р»РѕРєРёСЂРѕРІРєРё С‡С‚РµРЅРёСЏ
     if (!CancelIo(serverPipe)) {
-        // Обработка ошибки
+        // РћР±СЂР°Р±РѕС‚РєР° РѕС€РёР±РєРё
     }
     sendCommand();
     //PostQuitMessage(0);

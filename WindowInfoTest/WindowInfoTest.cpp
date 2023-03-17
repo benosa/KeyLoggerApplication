@@ -1,4 +1,4 @@
-﻿#include "CppUnitTest.h"
+#include "CppUnitTest.h"
 #include "GuardProcessorMock.h"
 #include "WindowInfo.h"
 #include <wchar.h>

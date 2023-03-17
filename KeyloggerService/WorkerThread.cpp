@@ -1,4 +1,4 @@
-﻿#include "WorkerThread.h"
+#include "WorkerThread.h"
 #include "defines.h"
 #include "HookThread.h"
 #include <thread>

@@ -1,4 +1,4 @@
-﻿#define WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 
 typedef BOOL(WINAPI * FP_IsWow64Process)(HANDLE, BOOL*);

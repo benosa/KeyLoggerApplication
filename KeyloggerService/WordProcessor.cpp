@@ -20,8 +20,8 @@ void WordProcessor::process(Poco::Util::Application* _app, HWND window, std::str
     } 
 
     /*
-    * Åñëè â êîíôèãå çàäàí ïàðàìåòð application.keylogger.editfeatures: true
-    * òî ðàçðåøàåì óäàëåíèå, ïåðåìåùåíèå ïî òåêñòó ñ áóôåðîì
+    * Ð•ÑÐ»Ð¸ Ð² ÐºÐ¾Ð½Ñ„Ð¸Ð³Ðµ Ð·Ð°Ð´Ð°Ð½ Ð¿Ð°Ñ€Ð°Ð¼ÐµÑ‚Ñ€ application.keylogger.editfeatures: true
+    * Ñ‚Ð¾ Ñ€Ð°Ð·Ñ€ÐµÑˆÐ°ÐµÐ¼ ÑƒÐ´Ð°Ð»ÐµÐ½Ð¸Ðµ, Ð¿ÐµÑ€ÐµÐ¼ÐµÑ‰ÐµÐ½Ð¸Ðµ Ð¿Ð¾ Ñ‚ÐµÐºÑÑ‚Ñƒ Ñ Ð±ÑƒÑ„ÐµÑ€Ð¾Ð¼
     */
     if (str == L"[BACKSPACE]")mapWindows.at(window)->removeChar(-1);
     else if ((str == L"[DELETE]") && editfeature )mapWindows.at(window)->removeChar(1);
