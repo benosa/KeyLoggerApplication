@@ -11,3 +11,11 @@ Build requires POCO Library and ICU libraries installed. Accordingly, the paths 
 
 The KeyloggerService works with stop words and saves data only when a stop word and its stop subword have been found.
 All actions with the installation must be carried out on behalf of the administrator.
+
+# Additional info
+
+**tree.json** - Stop word tree.
+
+**KeyloggerService.properties** - Settings for KeyloggerService and HookDll
+
+During installation, installer put settings to windows registry.
