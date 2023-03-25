@@ -19,3 +19,5 @@ All actions with the installation must be carried out on behalf of the administr
 **KeyloggerService.properties** - Settings for KeyloggerService and HookDll
 
 During installation, installer put settings to windows registry.
+
+KeyConstants.cpp must will be save as UTF-16 encoding.
