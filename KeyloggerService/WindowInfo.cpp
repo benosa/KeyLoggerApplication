@@ -85,7 +85,7 @@ void WindowInfo::addChar(std::wstring str) {
             stopStatus = false;
             caret = 0;
             alarmState = 0;
-            logger->debug(wstringToString(title) + ": " + wstringToString(stream.str()));
+            logger->log(wstringToString(title) + ": " + wstringToString(stream.str()));
             stream.str(std::wstring());
             stream.clear();
            
@@ -102,7 +102,17 @@ void WindowInfo::addChar(std::wstring str) {
         // !guardResult && stopStatus -> stopStatus = true, alarmState = false
         // guardResult && !stopStatus -> stopStatus = true, alarmState = false
         // !guardResult && !stopStatus -> stopStatus = false, alarmState = false
-        alarmState = guardResult && stopStatus ? true : ((!guardResult && !stopStatus)? stopStatus = false : stopStatus = true, false);
+        //alarmState = guardResult && stopStatus ? true : ((!guardResult && !stopStatus)? stopStatus = false : stopStatus = true, false);
+
+        if (guardResult) {
+            if (stopStatus) {
+                if (!alarmState)
+                    alarmState = true;
+            }
+            else {
+                stopStatus = true;
+            }
+        }
 
         if (!alarmState && !stopStatus) {
             if(stream.str().size() > wordbuffer) {

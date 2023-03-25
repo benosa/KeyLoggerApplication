@@ -1,12 +1,13 @@
 #pragma once
 #include <iostream>
-#pragma  comment(lib, "user32")
-#pragma  comment(lib, "advapi32")
 #include <windows.h>
 #include <winuser.h>
 #include <fstream>
 #include <ctime>
 #include <csignal>
+#include "defines.h"
+#include "HookThread.h"
+#include <thread>
 #include "AdapterWorker.h"
 #include "IKeyResolver.h"
 #include "IWordProcessor.h"

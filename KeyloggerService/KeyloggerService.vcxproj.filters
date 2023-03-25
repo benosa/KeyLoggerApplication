@@ -22,6 +22,15 @@
     <Filter Include="Injector\Файлы заголовков">
       <UniqueIdentifier>{a8e1965c-dcf9-47e6-a2c8-7c2168657d8a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Injector2">
+      <UniqueIdentifier>{911fdbf3-e5ca-4d06-8860-4c92bd44001a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Injector2\Исходные файлы">
+      <UniqueIdentifier>{5d77b954-40b1-4a92-9e68-5d6b4907d72f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Injector2\Файлы заголовков">
+      <UniqueIdentifier>{af636e26-ac58-4939-8399-7c8b4067471d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="KeyloggerService.cpp">
@@ -68,6 +77,33 @@
     </ClCompile>
     <ClCompile Include="RawGuardProcessor.cpp">
       <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="defines.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="injector2\CreateRemoteThread.cpp">
+      <Filter>Injector2\Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="injector2\GetOperatingSystemInfo.cpp">
+      <Filter>Injector2\Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="injector2\NtCreateThreadEx.cpp">
+      <Filter>Injector2\Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="injector2\QueueUserAPC.cpp">
+      <Filter>Injector2\Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="injector2\RaiseToSystemLevel.cpp">
+      <Filter>Injector2\Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="injector2\RtlCreateUserThread.cpp">
+      <Filter>Injector2\Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="injector2\SetWindowsHookEx.cpp">
+      <Filter>Injector2\Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="injector2\Injector.cpp">
+      <Filter>Injector2\Исходные файлы</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -127,6 +163,9 @@
     </ClInclude>
     <ClInclude Include="RawGuardProcessor.h">
       <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="injector2\Injector.h">
+      <Filter>Injector2\Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -22,14 +22,16 @@ class RawGuardProcessor :
     public IGuardProcessor
 {
 public:
-    RawGuardProcessor(const std::string& jsonFilePath, Poco::Logger* logger);
+    RawGuardProcessor(const std::string& jsonFilePath, Poco::Logger* _logger);
     std::string process(std::string stopWord, std::wstring sequence);
 private:
     Poco::Logger* logger;
     std::map<std::string, std::vector<std::string>> m_tree;
     void parseTree(Poco::JSON::Object::Ptr& root);
-    bool findPattern(const std::string& word, const std::string& stopWord) const;
+    bool matchPattern(const std::string& pattern, const std::string& text);
+    //bool findPattern(const std::string& word, const std::string& stopWord) const;
     std::string createPattern(const std::string& word) const;
     std::string wstringToString(const std::wstring& wideStr);
+    //std::wstring stringToWstring(const std::string& inputStr);
 };
 

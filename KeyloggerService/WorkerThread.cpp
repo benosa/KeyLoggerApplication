@@ -1,7 +1,4 @@
 #include "WorkerThread.h"
-#include "defines.h"
-#include "HookThread.h"
-#include <thread>
 
 WorkerThread::WorkerThread(HANDLE done, IKeyResover* resolver, IWordProcessor* processor): doneEvent(&done), keyResolver(resolver), wordProcessor(processor){
 	app = &Poco::Util::Application::instance();

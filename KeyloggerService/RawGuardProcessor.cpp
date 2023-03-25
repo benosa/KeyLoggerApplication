@@ -1,4 +1,10 @@
 #include "RawGuardProcessor.h"
+#include <fstream>
+#include <locale>
+#include <algorithm>
+#include <ranges>
+#include <charconv>
+#include <codecvt>
 
 RawGuardProcessor::RawGuardProcessor(const std::string& jsonFilePath, Poco::Logger* _logger) {
     logger = _logger;
@@ -14,24 +20,21 @@ RawGuardProcessor::RawGuardProcessor(const std::string& jsonFilePath, Poco::Logg
 }
 
 std::string RawGuardProcessor::wstringToString(const std::wstring& wideStr) {
-    UErrorCode errorCode = U_ZERO_ERROR;
-    UChar* uWideStr = reinterpret_cast<UChar*>(const_cast<wchar_t*>(wideStr.c_str()));
-    int32_t uWideStrLength = static_cast<int32_t>(wideStr.length());
+    std::u32string utf32Str(wideStr.begin(), wideStr.end());
+    std::vector<char> utf8Buffer(utf32Str.size() * 4);
+    char* out = utf8Buffer.data();
 
-    int32_t utf8Length;
-    u_strToUTF8(nullptr, 0, &utf8Length, uWideStr, uWideStrLength, &errorCode);
-    errorCode = U_ZERO_ERROR;
-
-    std::string utf8Str(utf8Length, '\0');
-    u_strToUTF8(&utf8Str[0], utf8Length, nullptr, uWideStr, uWideStrLength, &errorCode);
-
-    if (U_FAILURE(errorCode)) {
-        logger->error("Ошибка конвертации строки: " + std::string(u_errorName(errorCode)));
-        return std::string();
+    for (auto c : utf32Str) {
+        out = std::to_chars(out, out + 4, c, 16).ptr;
     }
 
-    return utf8Str;
+    return std::string(utf8Buffer.data(), out);
 }
+
+//std::wstring RawGuardProcessor::stringToWstring(const std::string& inputStr) {
+//    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
+//    return convert.from_bytes(inputStr);
+//}
 
 void RawGuardProcessor::parseTree(Poco::JSON::Object::Ptr& root) {
     for (const auto& it : *root) {
@@ -51,72 +54,42 @@ void RawGuardProcessor::parseTree(Poco::JSON::Object::Ptr& root) {
     }
 }
 
-std::string RawGuardProcessor::createPattern(const std::string& word) const {
-    std::string pattern = word;
-    size_t pos = 0;
+bool RawGuardProcessor::matchPattern(const std::string& pattern, const std::string& text) {
+    auto p = pattern.begin();
+    auto t = text.begin();
 
-    // Заменяем все символы '*' на '.*' в pattern
-    while ((pos = pattern.find('*', pos)) != std::string::npos) {
-        pattern.replace(pos, 1, ".*");
-        pos += 2;
+    while (p != pattern.end() && t != text.end()) {
+        if (*p == '*') {
+            if (++p == pattern.end()) {
+                return true;
+            }
+            t = std::find(t, text.end(), *p);
+        }
+        else if (*p == '?' || std::tolower(*p) == std::tolower(*t)) {
+            ++p;
+            ++t;
+        }
+        else {
+            return false;
+        }
     }
 
-    pos = 0;
-    // Заменяем все символы '?' на '.' в pattern
-    while ((pos = pattern.find('?', pos)) != std::string::npos) {
-        pattern.replace(pos, 1, ".");
-        pos += 1;
-    }
-
-    // Возвращаем регулярное выражение, созданное на основе шаблона
-    return pattern;
-}
-
-bool RawGuardProcessor::findPattern(const std::string& word, const std::string& stopWord) const {
-    icu::UnicodeString uWord = icu::UnicodeString::fromUTF8(word);
-    icu::UnicodeString uStopWord = icu::UnicodeString::fromUTF8(stopWord);
-
-    uWord = uWord.toLower();
-    uStopWord = uStopWord.toLower();
-
-    if (uStopWord.length() < uWord.length()) {
-        return false;
-    }
-
-    if (uWord == uStopWord) {
-        return true;
-    }
-
-    icu::UnicodeString pattern = icu::UnicodeString::fromUTF8(createPattern(word));
-    UErrorCode status = U_ZERO_ERROR;
-    icu::RegexMatcher* matcher = new icu::RegexMatcher(pattern, uStopWord, 0, status);
-
-    if (U_FAILURE(status)) {
-        delete matcher;
-        logger->error("Ошибка регулярного выражения: " + std::string(u_errorName(status)));
-        return false;
-    }
-
-    bool foundMatch = false;
-
-    while (matcher->find(status)) {
-        foundMatch = true;
-        // Выполнение действий с найденным совпадением, если необходимо
-    }
-
-    delete matcher;
-
-    return foundMatch;
+    return p == pattern.end() && t == text.end();
 }
 
 std::string RawGuardProcessor::process(std::string stopWord, std::wstring stop) {
+    std::string stopStr = wstringToString(stop);
+    std::string lowerStopStr;
+    std::ranges::transform(stopStr, std::back_inserter(lowerStopStr), ::tolower);
+
     if (stopWord.size() > 0) {
         const auto stopSubArray = m_tree.find(wstringToString(stop));
         if (stopSubArray == m_tree.end()) return "";
-        if (stopSubArray->second.size() == 0)return "";
+        if (stopSubArray->second.size() == 0) return "";
         for (const auto& it : stopSubArray->second) {
-            std::string word = it;
-            if (findPattern(word, stopWord)) {
+            std::string lowerWord;
+            std::ranges::transform(it, std::back_inserter(lowerWord), ::tolower);
+            if (matchPattern(lowerWord, lowerStopStr)) {
                 return stopWord;
             }
         }
@@ -124,9 +97,17 @@ std::string RawGuardProcessor::process(std::string stopWord, std::wstring stop) 
     }
     else {
         for (const auto& it : m_tree) {
-            std::string word = it.first;
-            if (findPattern(word, stopWord)) {
-                return stopWord;
+            std::string lowerWord;
+            std::ranges::transform(it.first, std::back_inserter(lowerWord), ::tolower);
+            if (matchPattern(lowerWord, lowerStopStr)) {
+                return it.first;
+            }
+            for (const auto& subWord : it.second) {
+                std::string lowerSubWord;
+                std::ranges::transform(subWord, std::back_inserter(lowerSubWord), ::tolower);
+                if (matchPattern(lowerSubWord, lowerStopStr)) {
+                    return it.first;
+                }
             }
         }
         return "";

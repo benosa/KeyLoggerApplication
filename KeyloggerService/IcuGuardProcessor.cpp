@@ -1,5 +1,19 @@
 #include "IcuGuardProcessor.h"
 
+size_t countWideCharacters(const std::string& str) {
+    std::setlocale(LC_ALL, "en_US.UTF-8"); // or any other locale that supports your encoding
+    size_t wideCharCount = 0;
+    errno_t err = mbstowcs_s(&wideCharCount, nullptr, 0, str.c_str(), _TRUNCATE);
+
+    if (err == 0) {
+        return wideCharCount;
+    }
+    else {
+        return 0;
+    }
+}
+
+
 IcuGuardProcessor::IcuGuardProcessor(const std::string& jsonFilePath, Poco::Logger* _logger) {
     logger = _logger;
     std::ifstream jsonFile(jsonFilePath);
@@ -159,10 +173,12 @@ std::string IcuGuardProcessor::createPattern(const std::string& word) const {
 }
 
 bool IcuGuardProcessor::findPattern(const std::string& word, const std::string& stopWord) const {
-    if (stopWord.size() < word.size())return false;
+    size_t cStopWord = countWideCharacters(stopWord);
+    size_t cWord = countWideCharacters(word);
+    if (cStopWord < cWord)return false;
     std::string fixed = fixInvalidUtf82(word);
-    icu::UnicodeString uWord = icu::UnicodeString::fromUTF8(fixed);
-    icu::UnicodeString uStopWord = icu::UnicodeString::fromUTF8(stopWord);
+    icu::UnicodeString uWord(fixed.c_str(), fixed.length());
+    icu::UnicodeString uStopWord(stopWord.c_str(), stopWord.length());
 
     uWord = uWord.toLower();
     uStopWord = uStopWord.toLower();
@@ -171,11 +187,16 @@ bool IcuGuardProcessor::findPattern(const std::string& word, const std::string& 
         return false;
     }
 
-    if (uWord == uStopWord) {
+    int result = uWord.compare(uStopWord);
+    if (result == 0)
         return true;
-    }
+    /*if (uWord == uStopWord) {
+        return true;
+    }*/
 
-    icu::UnicodeString pattern = icu::UnicodeString::fromUTF8(createPattern(word));
+    std::string fixed2 = fixInvalidUtf82(createPattern(word));
+    //icu::UnicodeString pattern = icu::UnicodeString::fromUTF8(fixed2);
+    icu::UnicodeString pattern(fixed2.c_str(), fixed2.length());
     UErrorCode status = U_ZERO_ERROR;
     icu::RegexMatcher* matcher = new icu::RegexMatcher(pattern, uStopWord, 0, status);
 

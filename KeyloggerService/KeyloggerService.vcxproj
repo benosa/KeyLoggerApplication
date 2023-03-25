@@ -108,7 +108,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\icu-windows\include;C:\Users\benosa\source\repos\KeyloggerService\KeyloggerService\injector;C:\POCOpro\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\icu-windows\include;C:\Users\idron\source\repos\KeyloggerService\KeyloggerService\injector2;C:\POCOpro\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
@@ -124,19 +124,36 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Users\idron\source\repos\KeyloggerService\KeyloggerService\injector2;C:\icu-windows\include;C:\Users\idron\source\repos\KeyloggerService\KeyloggerService\injector;C:\POCOpro\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\icu-windows\lib64;C:\POCOpro\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>icudt.lib;icuin.lib;icutu.lib;icuuc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/DYNAMICBASE:NO %(AdditionalOptions)</AdditionalOptions>
+      <RandomizedBaseAddress>false</RandomizedBaseAddress>
+      <FixedBaseAddress>true</FixedBaseAddress>
+      <DataExecutionPrevention>false</DataExecutionPrevention>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="defines.cpp" />
     <ClCompile Include="HookThread.cpp" />
     <ClCompile Include="IcuGuardProcessor.cpp" />
+    <ClCompile Include="injector2\CreateRemoteThread.cpp" />
+    <ClCompile Include="injector2\GetOperatingSystemInfo.cpp" />
+    <ClCompile Include="injector2\Injector.cpp" />
+    <ClCompile Include="injector2\NtCreateThreadEx.cpp" />
+    <ClCompile Include="injector2\QueueUserAPC.cpp" />
+    <ClCompile Include="injector2\RaiseToSystemLevel.cpp" />
+    <ClCompile Include="injector2\RtlCreateUserThread.cpp" />
+    <ClCompile Include="injector2\SetWindowsHookEx.cpp" />
     <ClCompile Include="injector\fileutils.cpp" />
     <ClCompile Include="injector\InjectDll.cpp" />
     <ClCompile Include="injector\process.cpp" />
@@ -158,6 +175,7 @@
     <ClInclude Include="IcuGuardProcessor.h" />
     <ClInclude Include="IGuardProcessor.h" />
     <ClInclude Include="IKeyResolver.h" />
+    <ClInclude Include="injector2\Injector.h" />
     <ClInclude Include="injector\InjectDll.h" />
     <ClInclude Include="injector\loaders.h" />
     <ClInclude Include="IWordProcessor.h" />

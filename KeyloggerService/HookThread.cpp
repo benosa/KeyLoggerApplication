@@ -1,19 +1,10 @@
 #include "HookThread.h"
-#include <Poco/UnicodeConverter.h>
-#include <tchar.h>
-#include <format>
-#include "defines.h"
-#include <Poco/PipeStream.h>
-#include "WindowsPipe.h"
-#include <Poco/Runnable.h>
-#include <Poco/RunnableAdapter.h>
-#include <thread>
-#include <AclAPI.h>
 
 using namespace std;
 
 extern std::atomic<bool> done;
 extern std::atomic<bool> done_callback;
+HANDLE writePipe;
 
 DWORD GetProcessIdByName(const wchar_t* processName) {
     DWORD pid = 0;
@@ -41,6 +32,10 @@ HookThread::HookThread(HANDLE done, Poco::Util::Application* _app, IKeyResover* 
     wordProcessor = processor;
     pBuf = NULL;
     serverPipe = NULL;
+    //FIXME Здесь это вызывать из потока нельзя
+    //необходимо передавать значения по другому
+    servicePipe = app->config().getString("application.service.pipe.path");
+    dllPipe = app->config().getString("application.dll.pipe.path");
 }
 
 void HookThread::HookProc(KeyInfo receivedInfo) {
@@ -58,11 +53,11 @@ void HookThread::HookProc(KeyInfo receivedInfo) {
 DWORD WINAPI HookThread::pipeServerThread(LPVOID lpThreadParameter, std::wstring name)
 {
     SECURITY_ATTRIBUTES sa;
-    serverPipe;
+    name;
     DWORD dwRead = 1;
     DWORD error;
     COMMTIMEOUTS timeouts;
-    TCHAR szBuffer[BUFSIZ + 1];
+    //TCHAR szBuffer[BUFSIZ + 1];
     bool startFlag = false;
 
     HANDLE evt = (HANDLE)lpThreadParameter;
@@ -129,21 +124,29 @@ _exit:
     return ret;
 }
 
-void HookThread::sendCommand() {
-
-    HANDLE writePipe = CreateFile(
-        L"\\\\.\\pipe\\myreadpipe",
+bool HookThread::createWritePipe() {
+    writePipe = CreateFile(
+        stringToWString(dllPipe).c_str(),
         GENERIC_WRITE,
         0,
         NULL,
         OPEN_EXISTING,
         0,
         NULL);
-
-    if (writePipe == INVALID_HANDLE_VALUE) {
-        logger->debug("[*] Send Command Error. Failed to open named pipe: " + GetLastError());
+    if (!writePipe || writePipe == INVALID_HANDLE_VALUE) {
+        return false;
     }
-    std::string out("stop");
+    return true;
+}
+
+void HookThread::sendCommand(std::string command) {
+    if (!writePipe || writePipe == INVALID_HANDLE_VALUE) {
+        createWritePipe();
+        if (!writePipe || writePipe == INVALID_HANDLE_VALUE) {
+            logger->debug("[*] Send Command Error. Failed to open named pipe: " + GetLastError());
+        }
+    }
+    std::string out(command);
     DWORD bytesWritten = 0;
     WriteFile(writePipe, out.c_str(), out.size(), &bytesWritten, NULL);
     if (bytesWritten != out.size())
@@ -156,7 +159,7 @@ void HookThread::sendCommand() {
     //// Создаем PipeInputStream на основе serverPipe
     //Poco::PipeOutputStream ostr(clientPipe);
     //ostr << "stop";
-    logger->debug("[*] Send STOP Command to Client!");
+    logger->debug("[*] Send Command to Client!");
     Sleep(2000);
     done_callback = true;
 }
@@ -166,12 +169,21 @@ void serverThreadFunc()
 
 }
 
+void HookThread::start() {
+    // Отменить операцию чтения в канале сервера, чтобы выйти из блокировки чтения
+    //if (!CancelIo(serverPipe)) {
+        // Обработка ошибки
+   // }
+    sendCommand("start");
+    //PostQuitMessage(0);
+}
+
 void HookThread::stop() {
     // Отменить операцию чтения в канале сервера, чтобы выйти из блокировки чтения
-    if (!CancelIo(serverPipe)) {
+    //if (!CancelIo(serverPipe)) {
         // Обработка ошибки
-    }
-    sendCommand();
+    //}
+    sendCommand("stop");
     //PostQuitMessage(0);
 }
 
@@ -183,26 +195,29 @@ void HookThread::run()
 
     //Poco::RunnableAdapter<HookThread> runnable(*this, &HookThread::pipeServerThread);
     std::thread myThread([&]() {
-        this->pipeServerThread(doneEvent, L"\\\\.\\pipe\\mywritepipe");
+        this->pipeServerThread(doneEvent, stringToWString(servicePipe));
         });
     myThread.detach();
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
-    DWORD parentProcessId = GetProcessIdByName(L"explorer");
+    DWORD parentProcessId = GetProcessIdByName(L"dwm");
 
     std::string appPath = Poco::Path(app->commandPath()).parent().toString();
     std::wstring wstr;
     Poco::UnicodeConverter::toUTF16(appPath, wstr);
     std::wstring resultStr = wstr + L"HookDll.dll";
 
-    bool result = injectDll(parentProcessId, (WCHAR*)resultStr.c_str());
-    if (result) {
-        logger->error("Cann't inject our Dll!");
-        stop();
-        return;
+    if (!createWritePipe()) {
+        bool result = InjectDll(parentProcessId, (WCHAR*)resultStr.c_str());
+        if (result) {
+            logger->error("Cann't inject our Dll!");
+            stop();
+            return;
+        }
+    } else {
+        start();
     }
-
     /*MSG msg = { };
     while (GetMessage(&msg, NULL, 0, 0) > 0 && WaitForSingleObject(doneEvent, 0) != WAIT_OBJECT_0) {
         TranslateMessage(&msg);
